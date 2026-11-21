@@ -1,0 +1,227 @@
+Package	Version	Declared license	Source	Notice files
+adler2	2.0.1	0BSD OR MIT OR Apache-2.0	https://github.com/oyvindln/adler2	texts/861399f8c21c-LICENSE-0BSD; texts/8ada45cd9f84-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+aes	0.9.4	MIT OR Apache-2.0	https://github.com/RustCrypto/block-ciphers	texts/a9040321c371-LICENSE-APACHE; texts/25f77efa3938-LICENSE-MIT
+aho-corasick	1.1.5	Unlicense OR MIT	https://github.com/BurntSushi/aho-corasick	texts/01c266bced4a-COPYING; texts/0f96a83840e1-LICENSE-MIT; texts/7e12e5df4bae-UNLICENSE
+alloc-no-stdlib	2.0.4	BSD-3-Clause	https://github.com/dropbox/rust-alloc-no-stdlib	texts/c0c56f26d9c0-LICENSE
+alloc-no-stdlib	3.0.0	BSD-3-Clause	https://github.com/dropbox/rust-alloc-no-stdlib	texts/c0c56f26d9c0-LICENSE
+alloc-stdlib	0.2.4	BSD-3-Clause	https://github.com/dropbox/rust-alloc-no-stdlib/blob/ae42d22078b98549e987d2f03d12df7b984fde47/LICENSE	texts/c0c56f26d9c0-LICENSE
+alloc-stdlib	0.3.0	BSD-3-Clause	https://github.com/dropbox/rust-alloc-no-stdlib/blob/0a81fd6928ea3b33c8cd484aa4575d50ffb98012/LICENSE	texts/c0c56f26d9c0-LICENSE
+anyhow	1.0.104	MIT OR Apache-2.0	https://github.com/dtolnay/anyhow	texts/62c7a1e35f56-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+async-compression	0.4.52	MIT OR Apache-2.0	https://github.com/Nullus157/async-compression	texts/a60eea817514-LICENSE-APACHE; texts/88d1e3160df4-LICENSE-MIT
+atomic-waker	1.1.2	Apache-2.0 OR MIT	https://github.com/smol-rs/atomic-waker	texts/a60eea817514-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT; texts/6226d0632e2e-LICENSE-THIRD-PARTY
+autocfg	1.5.1	Apache-2.0 OR MIT	https://github.com/cuviper/autocfg	texts/a60eea817514-LICENSE-APACHE; texts/27995d58ad5c-LICENSE-MIT
+axum	0.8.9	MIT	https://github.com/tokio-rs/axum	texts/6a13bc24a100-LICENSE
+axum-core	0.5.6	MIT	https://github.com/tokio-rs/axum	texts/008c87afcd2e-LICENSE
+babeldoc-font-core	0.1.0	AGPL-3.0-only	https://github.com/funstory-ai/BabelDOC/tree/d922e2b0c5a353bde8731921eb442c07ae75849d/native	texts/afca41723b45-BabelDOC-LICENSE
+babeldoc-il-types	0.1.0	AGPL-3.0-only	https://github.com/funstory-ai/BabelDOC/tree/d922e2b0c5a353bde8731921eb442c07ae75849d/native	texts/afca41723b45-BabelDOC-LICENSE
+babeldoc-ir-core	0.1.0	AGPL-3.0-only	https://github.com/funstory-ai/BabelDOC/tree/d922e2b0c5a353bde8731921eb442c07ae75849d/native	texts/afca41723b45-BabelDOC-LICENSE
+babeldoc-p2-stages	0.1.0	AGPL-3.0-only	https://github.com/funstory-ai/BabelDOC/tree/d922e2b0c5a353bde8731921eb442c07ae75849d/native	texts/afca41723b45-BabelDOC-LICENSE
+babeldoc-parser-core	0.1.0	AGPL-3.0-only	https://github.com/funstory-ai/BabelDOC/tree/d922e2b0c5a353bde8731921eb442c07ae75849d/native	texts/afca41723b45-BabelDOC-LICENSE
+babeldoc-writer-core	0.1.0	AGPL-3.0-only	https://github.com/funstory-ai/BabelDOC/tree/d922e2b0c5a353bde8731921eb442c07ae75849d/native	texts/afca41723b45-BabelDOC-LICENSE
+base64	0.22.1	MIT OR Apache-2.0	https://github.com/marshallpierce/rust-base64	texts/a60eea817514-LICENSE-APACHE; texts/0dd882e53de1-LICENSE-MIT
+base64	0.23.1	MIT OR Apache-2.0	https://github.com/marshallpierce/rust-base64	texts/a60eea817514-LICENSE-APACHE; texts/ab499c75a0f0-LICENSE-MIT
+bit-set	0.8.0	Apache-2.0 OR MIT	https://github.com/contain-rs/bit-set	texts/8173d5c29b4f-LICENSE-APACHE; texts/f51ac2c59a22-LICENSE-MIT
+bit-vec	0.8.0	Apache-2.0 OR MIT	https://github.com/contain-rs/bit-vec	texts/8173d5c29b4f-LICENSE-APACHE; texts/f51ac2c59a22-LICENSE-MIT
+bitflags	2.13.2	MIT OR Apache-2.0	https://github.com/bitflags/bitflags	texts/a60eea817514-LICENSE-APACHE; texts/6485b8ed310d-LICENSE-MIT
+block-buffer	0.12.1	MIT OR Apache-2.0	https://github.com/RustCrypto/utils	texts/a9040321c371-LICENSE-APACHE; texts/98181e7249d0-LICENSE-MIT
+block-padding	0.4.2	MIT OR Apache-2.0	https://github.com/RustCrypto/utils	texts/a9040321c371-LICENSE-APACHE; texts/98181e7249d0-LICENSE-MIT
+brotli	9.1.3	BSD-3-Clause AND MIT	https://github.com/dropbox/rust-brotli	texts/c0c56f26d9c0-LICENSE; texts/3d180008e369-LICENSE.MIT
+brotli-decompressor	5.0.3	BSD-3-Clause/MIT	https://github.com/dropbox/rust-brotli-decompressor	texts/c0c56f26d9c0-LICENSE
+brotli-decompressor	6.3.2	BSD-3-Clause/MIT	https://github.com/dropbox/rust-brotli-decompressor	texts/c0c56f26d9c0-LICENSE
+bstr	1.14.0	MIT OR Apache-2.0	https://github.com/BurntSushi/bstr	texts/68653aaa727a-COPYING; texts/a60eea817514-LICENSE-APACHE; texts/6b7374c39a57-LICENSE-MIT
+bumpalo	3.20.4	MIT OR Apache-2.0	https://github.com/fitzgen/bumpalo	texts/a60eea817514-LICENSE-APACHE; texts/65f94e99ddaf-LICENSE-MIT
+bytemuck	1.25.2	Zlib OR Apache-2.0 OR MIT	https://github.com/Lokathor/bytemuck	texts/e3ba223bb142-LICENSE-APACHE; texts/9df9ba60a11a-LICENSE-MIT; texts/84b34dd7608f-LICENSE-ZLIB
+bytemuck_derive	1.12.1	Zlib OR Apache-2.0 OR MIT	https://github.com/Lokathor/bytemuck	texts/e3ba223bb142-LICENSE-APACHE; texts/9df9ba60a11a-LICENSE-MIT; texts/84b34dd7608f-LICENSE-ZLIB
+bytes	1.12.2	MIT	https://github.com/tokio-rs/bytes	texts/45f522cacecb-LICENSE
+cbc	0.2.1	MIT OR Apache-2.0	https://github.com/RustCrypto/block-modes	texts/a9040321c371-LICENSE-APACHE; texts/63af4bea227c-LICENSE-MIT
+cc	1.11.2	MIT OR Apache-2.0	https://github.com/rust-lang/cc-rs	texts/a60eea817514-LICENSE-APACHE; texts/378f5840b258-LICENSE-MIT
+cfg-if	1.0.5	MIT OR Apache-2.0	https://github.com/rust-lang/cfg-if	texts/a60eea817514-LICENSE-APACHE; texts/378f5840b258-LICENSE-MIT
+chacha20	0.10.2	MIT OR Apache-2.0	https://github.com/RustCrypto/stream-ciphers	texts/a9040321c371-LICENSE-APACHE; texts/b8c6939380a4-LICENSE-MIT
+cipher	0.5.2	MIT OR Apache-2.0	https://github.com/RustCrypto/traits	texts/a9040321c371-LICENSE-APACHE; texts/950d712c518a-LICENSE-MIT
+compression-codecs	0.4.47	MIT OR Apache-2.0	https://github.com/Nullus157/async-compression	texts/a60eea817514-LICENSE-APACHE; texts/88d1e3160df4-LICENSE-MIT
+compression-core	0.4.34	MIT OR Apache-2.0	https://github.com/Nullus157/async-compression	texts/a60eea817514-LICENSE-APACHE; texts/88d1e3160df4-LICENSE-MIT
+const-oid	0.10.3	Apache-2.0 OR MIT	https://github.com/RustCrypto/formats	texts/a9040321c371-LICENSE-APACHE; texts/73b9dc2e79c7-LICENSE-MIT
+core-foundation	0.10.1	MIT OR Apache-2.0	https://github.com/servo/core-foundation-rs	texts/a60eea817514-LICENSE-APACHE; texts/62065228e42c-LICENSE-MIT
+core-foundation-sys	0.8.7	MIT OR Apache-2.0	https://github.com/servo/core-foundation-rs	texts/a60eea817514-LICENSE-APACHE; texts/62065228e42c-LICENSE-MIT
+cpubits	0.1.1	MIT OR Apache-2.0	https://github.com/RustCrypto/utils	texts/a9040321c371-LICENSE-APACHE; texts/003736bc9840-LICENSE-MIT
+cpufeatures	0.3.1	MIT OR Apache-2.0	https://github.com/RustCrypto/utils	texts/a9040321c371-LICENSE-APACHE; texts/73b9dc2e79c7-LICENSE-MIT
+crc32fast	1.5.5	MIT OR Apache-2.0	https://github.com/srijs/rust-crc32fast	texts/c6596eb7be85-LICENSE-APACHE; texts/61d383b05b87-LICENSE-MIT
+crossbeam-deque	0.8.8	MIT OR Apache-2.0	https://github.com/crossbeam-rs/crossbeam	texts/a60eea817514-LICENSE-APACHE; texts/5734ed989dfc-LICENSE-MIT
+crossbeam-epoch	0.9.21	MIT OR Apache-2.0	https://github.com/crossbeam-rs/crossbeam	texts/a60eea817514-LICENSE-APACHE; texts/5734ed989dfc-LICENSE-MIT
+crossbeam-utils	0.8.23	MIT OR Apache-2.0	https://github.com/crossbeam-rs/crossbeam	texts/a60eea817514-LICENSE-APACHE; texts/5734ed989dfc-LICENSE-MIT
+crypto-common	0.2.2	MIT OR Apache-2.0	https://github.com/RustCrypto/traits	texts/a9040321c371-LICENSE-APACHE; texts/d2e7ec5355c9-LICENSE-MIT
+digest	0.11.3	MIT OR Apache-2.0	https://github.com/RustCrypto/traits	texts/a9040321c371-LICENSE-APACHE; texts/af59cea35d7f-LICENSE-MIT
+displaydoc	0.2.7	MIT OR Apache-2.0	https://github.com/yaahc/displaydoc	texts/a60eea817514-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+ecb	0.2.1	MIT OR Apache-2.0	https://github.com/RustCrypto/block-modes	texts/a9040321c371-LICENSE-APACHE; texts/f2e4fad8a368-LICENSE-MIT
+either	1.19.0	MIT OR Apache-2.0	https://github.com/rayon-rs/either	texts/a60eea817514-LICENSE-APACHE; texts/7576269ea71f-LICENSE-MIT
+encoding_rs	0.8.44	(Apache-2.0 OR MIT) AND BSD-3-Clause	https://github.com/hsivonen/encoding_rs	texts/11789f45bb18-COPYRIGHT; texts/cfc7749b96f6-LICENSE-APACHE; texts/3fa4ca83dcc9-LICENSE-MIT; texts/838118388fe5-LICENSE-WHATWG
+equivalent	1.0.3	Apache-2.0 OR MIT	https://github.com/indexmap-rs/equivalent	texts/a60eea817514-LICENSE-APACHE; texts/7365cc8878a1-LICENSE-MIT
+errno	0.3.15	MIT OR Apache-2.0	https://github.com/lambda-fairy/rust-errno	texts/a60eea817514-LICENSE-APACHE; texts/8764a5976757-LICENSE-MIT
+fancy-regex	0.19.2	MIT	https://github.com/fancy-regex/fancy-regex	texts/3bc70e239e91-LICENSE
+fastrand	2.5.0	Apache-2.0 OR MIT	https://github.com/smol-rs/fastrand	texts/a60eea817514-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+find-msvc-tools	0.1.15	MIT OR Apache-2.0	https://github.com/rust-lang/cc-rs	texts/a60eea817514-LICENSE-APACHE; texts/378f5840b258-LICENSE-MIT
+flate2	1.1.11	MIT OR Apache-2.0	https://github.com/rust-lang/flate2-rs	texts/a60eea817514-LICENSE-APACHE; texts/025436edff4c-LICENSE-MIT
+font-types	0.12.7	MIT OR Apache-2.0	https://github.com/googlefonts/fontations	texts/eba684204073-LICENSE-APACHE; texts/7b4c9a3946df-LICENSE-MIT
+form_urlencoded	1.2.2	MIT OR Apache-2.0	https://github.com/servo/rust-url	texts/a60eea817514-LICENSE-APACHE; texts/20c7855c364d-LICENSE-MIT
+freetype-rs	0.38.0	MIT	https://github.com/PistonDevelopers/freetype-rs.git	texts/c7766d2e29f8-LICENSE
+freetype-sys	0.23.0	MIT	https://github.com/PistonDevelopers/freetype-sys.git	texts/8911cb953a89-LICENSE
+futures-channel	0.3.34	MIT OR Apache-2.0	https://github.com/rust-lang/futures-rs	texts/275c491d6d11-LICENSE-APACHE; texts/6652c868f35d-LICENSE-MIT
+futures-core	0.3.34	MIT OR Apache-2.0	https://github.com/rust-lang/futures-rs	texts/275c491d6d11-LICENSE-APACHE; texts/6652c868f35d-LICENSE-MIT
+futures-macro	0.3.34	MIT OR Apache-2.0	https://github.com/rust-lang/futures-rs	texts/275c491d6d11-LICENSE-APACHE; texts/6652c868f35d-LICENSE-MIT
+futures-sink	0.3.34	MIT OR Apache-2.0	https://github.com/rust-lang/futures-rs	texts/275c491d6d11-LICENSE-APACHE; texts/6652c868f35d-LICENSE-MIT
+futures-task	0.3.34	MIT OR Apache-2.0	https://github.com/rust-lang/futures-rs	texts/275c491d6d11-LICENSE-APACHE; texts/6652c868f35d-LICENSE-MIT
+futures-util	0.3.34	MIT OR Apache-2.0	https://github.com/rust-lang/futures-rs	texts/275c491d6d11-LICENSE-APACHE; texts/6652c868f35d-LICENSE-MIT
+getrandom	0.4.3	MIT OR Apache-2.0	https://github.com/rust-random/getrandom	texts/aaff376532ea-LICENSE-APACHE; texts/523a42c25d24-LICENSE-MIT
+hashbrown	0.17.1	MIT OR Apache-2.0	https://github.com/rust-lang/hashbrown	texts/a60eea817514-LICENSE-APACHE; texts/ff8f68cb076c-LICENSE-MIT
+http	1.5.0	MIT OR Apache-2.0	https://github.com/hyperium/http	texts/8bb1b50b0e5c-LICENSE-APACHE; texts/dc91f8200e4b-LICENSE-MIT
+http-body	1.1.0	MIT	https://github.com/hyperium/http-body	texts/248378d0a338-LICENSE
+http-body-util	0.1.5	MIT	https://github.com/hyperium/http-body	texts/248378d0a338-LICENSE
+http-range-header	0.4.2	MIT	https://github.com/MarcusGrass/parse-range-headers	texts/ed72515b08d7-LICENSE
+httparse	1.10.1	MIT OR Apache-2.0	https://github.com/seanmonstar/httparse	texts/a60eea817514-LICENSE-APACHE; texts/391a5396cec6-LICENSE-MIT
+httpdate	1.0.3	MIT OR Apache-2.0	https://github.com/pyfisch/httpdate	texts/4d10fe5f3aa1-LICENSE-APACHE; texts/934887691e05-LICENSE-MIT
+hybrid-array	0.4.15	MIT OR Apache-2.0	https://github.com/RustCrypto/hybrid-array	texts/a9040321c371-LICENSE-APACHE; texts/70c9d40f1f95-LICENSE-MIT
+hyper	1.12.0	MIT	https://github.com/hyperium/hyper	texts/2d0189041449-LICENSE
+hyper-tls	0.6.0	MIT/Apache-2.0	https://github.com/hyperium/hyper-tls	texts/a60eea817514-LICENSE-APACHE; texts/7b033f57f23f-LICENSE-MIT
+hyper-util	0.1.21	MIT	https://github.com/hyperium/hyper-util	texts/9e0a97848ea5-LICENSE
+icu_collections	2.4.0	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+icu_locale_core	2.4.0	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+icu_normalizer	2.4.0	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+icu_normalizer_data	2.4.0	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+icu_properties	2.4.0	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+icu_properties_data	2.4.0	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+icu_provider	2.4.0	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+idna	1.1.0	MIT OR Apache-2.0	https://github.com/servo/rust-url/	texts/a60eea817514-LICENSE-APACHE; texts/b38f11f60967-LICENSE-MIT
+idna_adapter	1.2.2	Apache-2.0 OR MIT	https://github.com/hsivonen/idna_adapter	texts/a60eea817514-LICENSE-APACHE; texts/8b43ce8accd6-LICENSE-MIT
+indexmap	2.14.2	Apache-2.0 OR MIT	https://github.com/indexmap-rs/indexmap	texts/a60eea817514-LICENSE-APACHE; texts/ecc269ef87fd-LICENSE-MIT
+inout	0.2.6	MIT OR Apache-2.0	https://github.com/RustCrypto/utils	texts/a9040321c371-LICENSE-APACHE; texts/a07fcacc3c60-LICENSE-MIT
+ipnet	2.12.2	MIT OR Apache-2.0	https://github.com/krisprice/ipnet	texts/87d9feb9238c-LICENSE-APACHE; texts/47dc9ff29128-LICENSE-MIT
+itoa	1.0.19	MIT OR Apache-2.0	https://github.com/dtolnay/itoa	texts/62c7a1e35f56-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+jobserver	0.1.35	MIT OR Apache-2.0	https://github.com/rust-lang/jobserver-rs	texts/a60eea817514-LICENSE-APACHE; texts/378f5840b258-LICENSE-MIT
+keccak	0.2.2	Apache-2.0 OR MIT	https://github.com/RustCrypto/sponges	texts/a9040321c371-LICENSE-APACHE; texts/8c7516d4b27b-LICENSE-MIT
+libc	0.2.191	MIT OR Apache-2.0	https://github.com/rust-lang/libc	texts/62c7a1e35f56-LICENSE-APACHE; texts/123a331b5dbf-LICENSE-MIT
+libloading	0.9.1	ISC	https://github.com/nagisa/rust_libloading/	texts/b29f8b014523-LICENSE
+libz-sys	1.1.31	MIT OR Apache-2.0	https://github.com/rust-lang/libz-sys	texts/a60eea817514-LICENSE-APACHE; texts/34c467b6945a-LICENSE-MIT
+litemap	0.8.3	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+log	0.4.34	MIT OR Apache-2.0	https://github.com/rust-lang/log	texts/a60eea817514-LICENSE-APACHE; texts/6485b8ed310d-LICENSE-MIT
+lopdf	0.45.0	MIT	https://github.com/J-F-Liu/lopdf.git	texts/2fb01e6708ea-LICENSE
+matchit	0.8.4	MIT AND BSD-3-Clause	https://github.com/ibraheemdev/matchit	texts/de701d0618d6-LICENSE; texts/162ce11ad713-LICENSE.httprouter
+matrixmultiply	0.3.11	MIT/Apache-2.0	https://github.com/bluss/matrixmultiply/	texts/a60eea817514-LICENSE-APACHE; texts/792d075c7bad-LICENSE-MIT
+md-5	0.11.0	MIT OR Apache-2.0	https://github.com/RustCrypto/hashes	texts/a9040321c371-LICENSE-APACHE; texts/831e0f43ad0b-LICENSE-MIT
+memchr	2.8.3	Unlicense OR MIT	https://github.com/BurntSushi/memchr	texts/01c266bced4a-COPYING; texts/0f96a83840e1-LICENSE-MIT; texts/7e12e5df4bae-UNLICENSE
+mime	0.3.18	MIT OR Apache-2.0	https://github.com/hyperium/mime	texts/a60eea817514-LICENSE-APACHE; texts/df9cfd06d8a4-LICENSE-MIT
+mime_guess	2.0.5	MIT	https://github.com/abonander/mime_guess	texts/816000f9c28f-LICENSE
+miniz_oxide	0.9.1	MIT OR Zlib OR Apache-2.0	https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide	texts/4108245a1f2d-LICENSE; texts/0d542e0c8804-LICENSE-APACHE.md; texts/799e9ca9d179-LICENSE-MIT.md; texts/0a54e647fe54-LICENSE-ZLIB.md
+mio	1.2.5	MIT	https://github.com/tokio-rs/mio	texts/07919255c7e0-LICENSE
+multiversion_no_op	1.0.0	Apache-2.0 OR MIT	https://github.com/hsivonen/multiversion_no_op	texts/d2a809eafabb-COPYRIGHT; texts/cfc7749b96f6-LICENSE-APACHE; texts/3fa4ca83dcc9-LICENSE-MIT
+native-tls	0.2.18	MIT OR Apache-2.0	https://github.com/rust-native-tls/rust-native-tls	texts/c6596eb7be85-LICENSE-APACHE; texts/f2ad7982ddbf-LICENSE-MIT
+ndarray	0.17.2	MIT OR Apache-2.0	https://github.com/rust-ndarray/ndarray	texts/a60eea817514-LICENSE-APACHE; texts/1fd6747d2c8e-LICENSE-MIT
+nom	8.0.0	MIT	https://github.com/rust-bakery/nom	texts/4dbda0434445-LICENSE
+num-complex	0.4.6	MIT OR Apache-2.0	https://github.com/rust-num/num-complex	texts/a60eea817514-LICENSE-APACHE; texts/6485b8ed310d-LICENSE-MIT
+num-integer	0.1.47	MIT OR Apache-2.0	https://github.com/rust-num/num-integer	texts/a60eea817514-LICENSE-APACHE; texts/6485b8ed310d-LICENSE-MIT
+num-traits	0.2.19	MIT OR Apache-2.0	https://github.com/rust-num/num-traits	texts/a60eea817514-LICENSE-APACHE; texts/6485b8ed310d-LICENSE-MIT
+once_cell	1.21.4	MIT OR Apache-2.0	https://github.com/matklad/once_cell	texts/a60eea817514-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+ort	2.0.0-rc.12	MIT OR Apache-2.0	https://github.com/pykeio/ort	texts/cfc7749b96f6-LICENSE-APACHE; texts/6bba08de4628-LICENSE-MIT
+ort-sys	2.0.0-rc.12	MIT OR Apache-2.0	https://github.com/pykeio/ort	texts/cfc7749b96f6-LICENSE-APACHE; texts/6bba08de4628-LICENSE-MIT
+percent-encoding	2.3.2	MIT OR Apache-2.0	https://github.com/servo/rust-url/	texts/a60eea817514-LICENSE-APACHE; texts/b38f11f60967-LICENSE-MIT
+pin-project-lite	0.2.18	Apache-2.0 OR MIT	https://github.com/taiki-e/pin-project-lite	texts/0d542e0c8804-LICENSE-APACHE.md; texts/23f18e03dc49-LICENSE-MIT
+pkg-config	0.3.34	MIT OR Apache-2.0	https://github.com/rust-lang/pkg-config-rs	texts/a60eea817514-LICENSE-APACHE; texts/378f5840b258-LICENSE-MIT
+potential_utf	0.1.6	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+proc-macro2	1.0.107	MIT OR Apache-2.0	https://github.com/dtolnay/proc-macro2	texts/62c7a1e35f56-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+quote	1.0.47	MIT OR Apache-2.0	https://github.com/dtolnay/quote	texts/62c7a1e35f56-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+rand	0.10.4	MIT OR Apache-2.0	https://github.com/rust-random/rand	texts/90eb64f0279b-COPYRIGHT; texts/35242e7a83f6-LICENSE-APACHE; texts/209fbbe0ad52-LICENSE-MIT
+rand_core	0.10.1	MIT OR Apache-2.0	https://github.com/rust-random/rand_core	texts/92b81db30f7a-COPYRIGHT; texts/6df43f6f4b5d-LICENSE-APACHE; texts/8b6e9feec03e-LICENSE-MIT
+rangemap	1.8.0	MIT/Apache-2.0	https://github.com/jeffparsons/rangemap	texts/1c7745cc26c7-LICENSE-APACHE; texts/29a4c3823ee2-LICENSE-MIT
+rawpointer	0.2.1	MIT/Apache-2.0	https://github.com/bluss/rawpointer/	texts/a60eea817514-LICENSE-APACHE; texts/7576269ea71f-LICENSE-MIT
+rayon	1.12.0	MIT OR Apache-2.0	https://github.com/rayon-rs/rayon	texts/a60eea817514-LICENSE-APACHE; texts/0621878e61f0-LICENSE-MIT
+rayon-core	1.13.0	MIT OR Apache-2.0	https://github.com/rayon-rs/rayon	texts/a60eea817514-LICENSE-APACHE; texts/0621878e61f0-LICENSE-MIT
+read-fonts	0.42.1	MIT OR Apache-2.0	https://github.com/googlefonts/fontations	texts/eba684204073-LICENSE-APACHE; texts/7b4c9a3946df-LICENSE-MIT
+regex	1.13.1	MIT OR Apache-2.0	https://github.com/rust-lang/regex	texts/a60eea817514-LICENSE-APACHE; texts/6485b8ed310d-LICENSE-MIT
+regex-automata	0.4.19	MIT OR Apache-2.0	https://github.com/rust-lang/regex	texts/a60eea817514-LICENSE-APACHE; texts/6485b8ed310d-LICENSE-MIT
+regex-syntax	0.8.12	MIT OR Apache-2.0	https://github.com/rust-lang/regex	texts/a60eea817514-LICENSE-APACHE; texts/6485b8ed310d-LICENSE-MIT
+reqwest	0.12.28	MIT OR Apache-2.0	https://github.com/seanmonstar/reqwest	texts/751963a8b88c-LICENSE-APACHE; texts/47d4e1803702-LICENSE-MIT
+rtree_compat	0.1.0	AGPL-3.0-only; libspatialindex portions MIT	BabelDOC vendored native/rtree_compat; https://github.com/libspatialindex/libspatialindex	texts/afca41723b45-BabelDOC-LICENSE; texts/d1cc511eb1dc-rtree_compat-libspatialindex-NOTICE
+rustc-hash	2.1.3	Apache-2.0 OR MIT	https://github.com/rust-lang/rustc-hash	texts/95bd3988beee-LICENSE-APACHE; texts/30fefc3a7d6a-LICENSE-MIT
+rustix	1.1.6	Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT	https://github.com/bytecodealliance/rustix	texts/377c2e7c5325-COPYRIGHT; texts/a60eea817514-LICENSE-APACHE; texts/268872b9816f-LICENSE-Apache-2.0_WITH_LLVM-exception; texts/23f18e03dc49-LICENSE-MIT
+rustls-pki-types	1.16.0	MIT OR Apache-2.0	https://github.com/rustls/pki-types	texts/45fd05c4865e-LICENSE-APACHE; texts/9117d922e667-LICENSE-MIT
+rustversion	1.0.23	MIT OR Apache-2.0	https://github.com/dtolnay/rustversion	texts/62c7a1e35f56-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+ruzstd	0.9.0	MIT	https://github.com/KillingSpark/zstd-rs	texts/d715eb0d9cfe-LICENSE
+ryu	1.0.23	Apache-2.0 OR BSL-1.0	https://github.com/dtolnay/ryu	texts/62c7a1e35f56-LICENSE-APACHE; texts/c9bff7573892-LICENSE-BOOST
+scopeguard	1.2.0	MIT OR Apache-2.0	https://github.com/bluss/scopeguard	texts/a60eea817514-LICENSE-APACHE; texts/fb77f0a9c53e-LICENSE-MIT
+security-framework	3.7.0	MIT OR Apache-2.0	https://github.com/kornelski/rust-security-framework	texts/a60eea817514-LICENSE-APACHE; texts/91e934255ba3-LICENSE-MIT
+security-framework-sys	2.17.0	MIT OR Apache-2.0	https://github.com/kornelski/rust-security-framework	texts/a60eea817514-LICENSE-APACHE; texts/91e934255ba3-LICENSE-MIT
+serde	1.0.229	MIT OR Apache-2.0	https://github.com/serde-rs/serde	texts/62c7a1e35f56-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+serde_core	1.0.229	MIT OR Apache-2.0	https://github.com/serde-rs/serde	texts/62c7a1e35f56-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+serde_derive	1.0.229	MIT OR Apache-2.0	https://github.com/serde-rs/serde	texts/62c7a1e35f56-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+serde_json	1.0.154	MIT OR Apache-2.0	https://github.com/serde-rs/json	texts/62c7a1e35f56-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+serde_path_to_error	0.1.20	MIT OR Apache-2.0	https://github.com/dtolnay/path-to-error	texts/62c7a1e35f56-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+serde_spanned	1.1.3	MIT OR Apache-2.0	https://github.com/toml-rs/toml	texts/249fdb669446-LICENSE-APACHE; texts/6efb0476a1cc-LICENSE-MIT
+serde_urlencoded	0.7.1	MIT/Apache-2.0	https://github.com/nox/serde_urlencoded	texts/62c7a1e35f56-LICENSE-APACHE; texts/b9eb26629432-LICENSE-MIT
+sha2	0.11.0	MIT OR Apache-2.0	https://github.com/RustCrypto/hashes	texts/a9040321c371-LICENSE-APACHE; texts/831e0f43ad0b-LICENSE-MIT
+sha3	0.12.0	MIT OR Apache-2.0	https://github.com/RustCrypto/hashes	texts/a9040321c371-LICENSE-APACHE; texts/6462612d92b8-LICENSE-MIT
+shlex	2.0.1	MIT OR Apache-2.0	https://github.com/comex/rust-shlex	texts/553fffcd9b1c-LICENSE-APACHE; texts/4455bf75a911-LICENSE-MIT
+simd-adler32	0.3.10	MIT	https://github.com/mcountryman/simd-adler32	texts/42a35170233e-LICENSE.md
+simdutf8	0.1.5	MIT OR Apache-2.0	https://github.com/rusticstuff/simdutf8	texts/0cec06e0e55f-LICENSE-Apache; texts/1847e0e06981-LICENSE-MIT
+skrifa	0.45.1	MIT OR Apache-2.0	https://github.com/googlefonts/fontations	texts/eba684204073-LICENSE-APACHE; texts/7b4c9a3946df-LICENSE-MIT
+slab	0.4.12	MIT	https://github.com/tokio-rs/slab	texts/8ce0830173fd-LICENSE
+smallvec	1.16.6	MIT OR Apache-2.0	https://github.com/smallvec/smallvec	texts/a60eea817514-LICENSE-APACHE; texts/0b28172679e0-LICENSE-MIT
+socket2	0.6.5	MIT OR Apache-2.0	https://github.com/rust-lang/socket2	texts/a60eea817514-LICENSE-APACHE; texts/378f5840b258-LICENSE-MIT
+sponge-cursor	0.1.0	MIT OR Apache-2.0	https://github.com/RustCrypto/utils	texts/a9040321c371-LICENSE-APACHE; texts/083cb05a34eb-LICENSE-MIT
+stable_deref_trait	1.2.1	MIT OR Apache-2.0	https://github.com/storyyeller/stable_deref_trait	texts/a60eea817514-LICENSE-APACHE; texts/5e05b024f653-LICENSE-MIT
+stringprep	0.1.5	MIT/Apache-2.0	https://github.com/sfackler/rust-stringprep	texts/c6596eb7be85-LICENSE-APACHE; texts/a07450fd4496-LICENSE-MIT
+subsetter	0.2.6	MIT OR Apache-2.0	https://github.com/typst/subsetter	texts/62c7a1e35f56-LICENSE-APACHE; texts/508a77d2e7b5-LICENSE-MIT; texts/756e3179c691-NOTICE
+syn	3.0.10	MIT OR Apache-2.0	https://github.com/dtolnay/syn	texts/62c7a1e35f56-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+sync_wrapper	1.0.2	Apache-2.0	https://github.com/Actyx/sync_wrapper	texts/0d542e0c8804-LICENSE-APACHE.md
+synstructure	0.14.0	MIT	https://github.com/mystor/synstructure	texts/219920e865ee-LICENSE
+tempfile	3.27.0	MIT OR Apache-2.0	https://github.com/Stebalien/tempfile	texts/a60eea817514-LICENSE-APACHE; texts/8b427f5bc501-LICENSE-MIT
+thiserror	2.0.21	MIT OR Apache-2.0	https://github.com/dtolnay/thiserror	texts/62c7a1e35f56-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+thiserror-impl	2.0.21	MIT OR Apache-2.0	https://github.com/dtolnay/thiserror	texts/62c7a1e35f56-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT
+tiktoken-rs	0.12.1	MIT	https://github.com/zurawiki/tiktoken-rs/blob/72a5a800651a1cea1ad609292446ba02c80e3bcd/LICENSE	texts/f7c6ddf9d84f-tiktoken-rs-0.12.1-LICENSE
+tinystr	0.8.5	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+tinyvec	1.13.3	Zlib OR Apache-2.0 OR MIT	https://github.com/Lokathor/tinyvec	texts/cfc7749b96f6-LICENSE-APACHE; texts/fd80a26fbb3f-LICENSE-MIT.md; texts/84b34dd7608f-LICENSE-ZLIB
+tokio	1.54.1	MIT	https://github.com/tokio-rs/tokio	texts/253cd04c6714-LICENSE
+tokio-macros	2.7.2	MIT	https://github.com/tokio-rs/tokio	texts/0b83dc40cba8-LICENSE
+tokio-native-tls	0.3.1	MIT	https://github.com/tokio-rs/tls	texts/898b1ae9821e-LICENSE
+tokio-util	0.7.20	MIT	https://github.com/tokio-rs/tokio	texts/253cd04c6714-LICENSE
+toml	0.9.12+spec-1.1.0	MIT OR Apache-2.0	https://github.com/toml-rs/toml	texts/c6596eb7be85-LICENSE-APACHE; texts/6efb0476a1cc-LICENSE-MIT
+toml_datetime	0.7.5+spec-1.1.0	MIT OR Apache-2.0	https://github.com/toml-rs/toml	texts/c6596eb7be85-LICENSE-APACHE; texts/6efb0476a1cc-LICENSE-MIT
+toml_parser	1.1.5+spec-1.1.0	MIT OR Apache-2.0	https://github.com/toml-rs/toml	texts/249fdb669446-LICENSE-APACHE; texts/6efb0476a1cc-LICENSE-MIT
+toml_writer	1.2.0+spec-1.1.0	MIT OR Apache-2.0	https://github.com/toml-rs/toml	texts/249fdb669446-LICENSE-APACHE; texts/6efb0476a1cc-LICENSE-MIT
+tower	0.5.3	MIT	https://github.com/tower-rs/tower	texts/4249c8e6c5eb-LICENSE
+tower-http	0.6.11	MIT	https://github.com/tower-rs/tower-http	texts/5049cf464977-LICENSE
+tower-layer	0.3.3	MIT	https://github.com/tower-rs/tower	texts/4249c8e6c5eb-LICENSE
+tower-service	0.3.3	MIT	https://github.com/tower-rs/tower	texts/4249c8e6c5eb-LICENSE
+tracing	0.1.44	MIT	https://github.com/tokio-rs/tracing	texts/898b1ae9821e-LICENSE
+tracing-core	0.1.36	MIT	https://github.com/tokio-rs/tracing	texts/898b1ae9821e-LICENSE
+try-lock	0.2.5	MIT	https://github.com/seanmonstar/try-lock	texts/c816a0749cdc-LICENSE
+twox-hash	2.1.5	MIT	https://github.com/shepmaster/twox-hash	texts/f59bcb1c0265-LICENSE.txt
+typenum	1.20.1	MIT OR Apache-2.0	https://github.com/paholg/typenum	texts/db11fec99467-LICENSE; texts/516b24e051bf-LICENSE-APACHE; texts/a825bd853ab7-LICENSE-MIT
+unicase	2.10.0	MIT OR Apache-2.0	https://github.com/seanmonstar/unicase	texts/a60eea817514-LICENSE-APACHE; texts/4f6bd11a0f17-LICENSE-MIT
+unicode-bidi	0.3.18	MIT OR Apache-2.0	https://github.com/servo/unicode-bidi	texts/edb20b474f6c-COPYRIGHT; texts/a60eea817514-LICENSE-APACHE; texts/7b63ecd5f190-LICENSE-MIT
+unicode-ident	1.0.27	(MIT OR Apache-2.0) AND Unicode-3.0	https://github.com/dtolnay/unicode-ident	texts/62c7a1e35f56-LICENSE-APACHE; texts/23f18e03dc49-LICENSE-MIT; texts/f7db81051789-LICENSE-UNICODE
+unicode-normalization	0.1.26	(MIT OR Apache-2.0) AND Unicode-3.0	https://github.com/unicode-rs/unicode-normalization	texts/23860c2a7b5d-COPYRIGHT; texts/a60eea817514-LICENSE-APACHE; texts/7b63ecd5f190-LICENSE-MIT; texts/f7db81051789-LICENSE-UNICODE
+unicode-properties	0.1.5	(MIT OR Apache-2.0) AND Unicode-3.0	https://github.com/unicode-rs/unicode-properties	texts/23860c2a7b5d-COPYRIGHT; texts/a60eea817514-LICENSE-APACHE; texts/7b63ecd5f190-LICENSE-MIT; texts/e7a93b009565-LICENSE-UNICODE
+url	2.5.8	MIT OR Apache-2.0	https://github.com/servo/rust-url	texts/a60eea817514-LICENSE-APACHE; texts/b38f11f60967-LICENSE-MIT
+utf8_iter	1.1.0	Apache-2.0 OR MIT	https://github.com/hsivonen/utf8_iter	texts/c30152c94a6d-COPYRIGHT; texts/cfc7749b96f6-LICENSE-APACHE; texts/3fa4ca83dcc9-LICENSE-MIT
+utf_types	1.0.0	Apache-2.0 OR MIT	https://github.com/hsivonen/utf_types	texts/3210be7332b5-COPYRIGHT; texts/cfc7749b96f6-LICENSE-APACHE; texts/3fa4ca83dcc9-LICENSE-MIT
+uuid	1.29.3	Apache-2.0 OR MIT	https://github.com/uuid-rs/uuid	texts/a60eea817514-LICENSE-APACHE; texts/436bc5a105d8-LICENSE-MIT
+vcpkg	0.2.15	MIT/Apache-2.0	https://github.com/mcgoo/vcpkg-rs	texts/60c93a31f490-LICENSE-APACHE; texts/016d20f33506-LICENSE-MIT
+want	0.3.2	MIT	https://github.com/seanmonstar/want	texts/a65f5d0a945d-LICENSE
+weezl	0.2.1	MIT OR Apache-2.0	https://github.com/image-rs/weezl	texts/769f80b5bcb4-LICENSE-APACHE; texts/573f5227db83-LICENSE-MIT
+winnow	0.7.15	MIT	https://github.com/winnow-rs/winnow	texts/cb5aedb296c5-LICENSE-MIT
+winnow	1.0.5	MIT	https://github.com/winnow-rs/winnow	texts/cb5aedb296c5-LICENSE-MIT
+writeable	0.6.4	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+yoke	0.8.4	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+yoke-derive	0.8.4	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+zerofrom	0.1.8	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+zerofrom-derive	0.1.8	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+zeroize	1.9.2	Apache-2.0 OR MIT	https://github.com/RustCrypto/utils	texts/cfc7749b96f6-LICENSE-APACHE; texts/8c7516d4b27b-LICENSE-MIT
+zerotrie	0.2.5	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+zerovec	0.11.9	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+zerovec-derive	0.11.7	Unicode-3.0	https://github.com/unicode-org/icu4x	texts/f367c1b8e1aa-LICENSE
+zip	4.6.1	MIT	https://github.com/zip-rs/zip2.git	texts/04dc52136d82-LICENSE
+zlib-rs	0.6.8	Zlib	https://github.com/trifectatechfoundation/zlib-rs	texts/e72111c52b7d-LICENSE
+zmij	1.0.23	MIT	https://github.com/dtolnay/zmij	texts/23f18e03dc49-LICENSE-MIT
+zopfli	0.8.4	Apache-2.0	https://github.com/zopfli-rs/zopfli	texts/018b1cb87efd-COPYING
+zstd	0.13.3	MIT	https://github.com/gyscos/zstd-rs	texts/129e8edef29e-LICENSE
+zstd-safe	7.4.1	BSD-3-Clause	https://github.com/gyscos/zstd-rs	texts/ce4868c8e4eb-LICENSE
+zstd-sys	2.1.3+zstd.1.5.7	BSD-3-Clause AND BSD-2-Clause	https://github.com/gyscos/zstd-rs	texts/ce4868c8e4eb-LICENSE; texts/982cd76c8a6b-LICENSE.BSD-2-Clause; texts/bf7017a73a95-LICENSE.BSD-3-Clause

@@ -1,0 +1,9 @@
+GoNotoKurrent Regular and Bold
+
+The embedded font records identify Copyright 2022 The Noto Project Authors.
+The generated fonts are provided under SIL Open Font License 1.1.
+The upstream build and merge scripts are published under The Unlicense.
+See Noto-LGC-OFL.txt and Go-Noto-Tooling-Unlicense.txt for the respective texts.
+
+Sources: https://github.com/satbyy/go-noto-universal#license
+         https://github.com/notofonts/latin-greek-cyrillic

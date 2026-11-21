@@ -1,0 +1,56 @@
+Bundled font copyright records
+
+The following records come from name ID 0 in the published font files.
+
+GoNotoKurrent-Bold.ttf
+GoNotoKurrent-Regular.ttf
+Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)
+
+KleeOne-Regular.ttf
+Copyright 2020 The Klee Project Authors (https://github.com/fontworks-fonts/Klee)
+
+LXGWWenKaiGB-Regular.1.520.ttf
+Copyright 2022-2025 LXGW (https://github.com/lxgw/LxgwWenkaiGB)
+Copyright 2020 The Klee Project Authors (https://github.com/fontworks-fonts/Klee)
+
+LXGWWenKaiTC-Regular.1.520.ttf
+Copyright 2022-2025 LXGW (https://github.com/lxgw/LxgwWenkaiTC)
+Copyright 2020 The Klee Project Authors (https://github.com/fontworks-fonts/Klee)
+
+MaruBuri-Regular.ttf
+© NAVER Corp. © NAVER Cultural Foundation Corp.
+
+NotoSans-Bold.ttf
+NotoSans-BoldItalic.ttf
+NotoSans-Italic.ttf
+NotoSans-Regular.ttf
+NotoSerif-Bold.ttf
+NotoSerif-BoldItalic.ttf
+NotoSerif-Italic.ttf
+NotoSerif-Regular.ttf
+Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)
+
+SourceHanSansCN-Bold.ttf
+SourceHanSansCN-Regular.ttf
+SourceHanSansHK-Bold.ttf
+SourceHanSansHK-Regular.ttf
+SourceHanSansJP-Bold.ttf
+SourceHanSansJP-Regular.ttf
+SourceHanSansKR-Bold.ttf
+SourceHanSansKR-Regular.ttf
+SourceHanSansTW-Bold.ttf
+SourceHanSansTW-Regular.ttf
+© 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.
+
+SourceHanSerifCN-Bold.ttf
+SourceHanSerifCN-Regular.ttf
+SourceHanSerifHK-Bold.ttf
+SourceHanSerifHK-Regular.ttf
+SourceHanSerifJP-Bold.ttf
+SourceHanSerifJP-Regular.ttf
+SourceHanSerifKR-Bold.ttf
+SourceHanSerifKR-Regular.ttf
+SourceHanSerifTW-Bold.ttf
+SourceHanSerifTW-Regular.ttf
+© 2017-2024 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.
+

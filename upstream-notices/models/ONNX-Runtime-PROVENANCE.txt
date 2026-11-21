@@ -1,0 +1,10 @@
+ONNX Runtime 1.32.0, by Microsoft Corporation (MIT)
+
+Official PyPI wheel: onnxruntime-1.32.0-cp312-cp312-macosx_14_0_arm64.whl
+https://files.pythonhosted.org/packages/6f/a4/480cd367bc135dd9951c89d461cc6af6be9302cd2ce91e231f6cb0e7ee1b/onnxruntime-1.32.0-cp312-cp312-macosx_14_0_arm64.whl
+SHA-256: d52510bbbcc880c13b826f7d75cdf33ac5cf0bb864d960000fc29ce73f0cb83e
+
+Extracted member: onnxruntime/capi/libonnxruntime.1.32.0.dylib
+SHA-256: fa585fabbea65b823b9a8f7e27d46aee3989d1be7e36b528203d3a1fd613aae7
+
+See ONNX-Runtime-LICENSE and ONNX-Runtime-ThirdPartyNotices.txt.

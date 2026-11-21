@@ -1,0 +1,14 @@
+DocLayout-YOLO DocStructBench (1024-pixel ONNX export)
+
+The checkpoint was published by Zhiyuan Zhao and the DocLayout-YOLO authors.
+DocLayout-YOLO: Enhancing Document Layout Analysis through Diverse Synthetic
+Data and Global-to-Local Adaptive Perception, arXiv:2410.12628.
+
+Original checkpoint: https://huggingface.co/juliozhao/DocLayout-YOLO-DocStructBench
+ONNX export by wybxc: https://huggingface.co/wybxc/DocLayout-YOLO-DocStructBench-onnx
+Exact file: https://huggingface.co/wybxc/DocLayout-YOLO-DocStructBench-onnx/blob/89c9fe9/doclayout_yolo_docstructbench_imgsz1024.onnx
+SHA-256: fece9af02f618b603ff7921ccec6861d13e7e1f9830e091dfb7e8ad9311e5b21
+
+The original checkpoint and ONNX export are published under Apache-2.0.
+The upstream repository for the model implementation is a separate AGPL-3.0
+project: https://github.com/opendatalab/DocLayout-YOLO
