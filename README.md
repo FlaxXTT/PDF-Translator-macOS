@@ -4,11 +4,66 @@ PDF Translator is a native macOS workbench for translating searchable PDFs. Impo
 
 ## Download
 
-Download the Apple Silicon ZIP from [Releases](https://github.com/FlaxXTT/PDF-Translator-macOS/releases), unzip it, and open **PDF Translator.app**. The packaged ONNX Runtime requires macOS 14 or later. The preview build is ad-hoc signed and is distributed without Apple notarization.
+Download the Apple Silicon ZIP from [Latest release](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/latest), unzip it, and open **PDF Translator.app**. The packaged ONNX Runtime requires macOS 14 or later. The build uses an ad-hoc signature and is distributed without Apple notarization.
 
 A blank **Pages** field selects the whole document. Enter `2,5,9-12` to select individual pages and ranges. The **Settings** view contains the provider, output, and glossary controls.
 
-PDF layout and rendering run locally. Cloud translation sends extracted text to the selected service. Image-only PDFs need a searchable text layer. Bilingual side-by-side export does not currently map every PDF link and annotation.
+PDF layout and rendering run locally. Cloud translation sends extracted text to the selected service. Image-only PDFs need a searchable text layer. Side-by-side exports preserve bookmarks, internal links, hyperlinks, and annotations on the original panel. Open the exported PDF in a PDF reader to follow its links and view comments. If a page is excluded from the export, links to that page are inactive.
+
+## See the app in action
+
+![Bilingual workspace preview with the download menu open](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-preview.png)
+
+The screenshots use sample PDFs and a local simulated translation service.
+
+### Original links and annotations in bilingual exports
+
+![An exported bilingual spread with links and highlights on the original panel](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/export-links.png)
+
+The original panel keeps the table-of-contents link, web reference, highlight, and comment. The translation occupies the other panel.
+
+<details>
+<summary>Import, page selection, and compact layout</summary>
+
+| Workspace | Link import |
+| --- | --- |
+| ![Local file import and the original and translated PDF preview](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-empty.png) | ![Workspace with Link selected and a sample PDF URL](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-link.png) |
+
+| Page selection | Compact layout |
+| --- | --- |
+| ![Workspace with a page range and the language menu expanded](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-options.png) | ![Narrow window with separate Setup and Preview tabs](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-compact.png) |
+
+</details>
+
+<details>
+<summary>Translation progress, retry, and export feedback</summary>
+
+| Translation progress | Retry |
+| --- | --- |
+| ![Batch translation with progress and a Cancel button](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-progress.png) | ![Failed translation with an error and Retry button](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-retry.png) |
+
+**Export feedback**
+
+![Downloadable result with a warning that source text was retained](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-warning.png)
+
+</details>
+
+<details>
+<summary>Provider, output, glossary, and advanced settings</summary>
+
+| Provider selection | Provider preset |
+| --- | --- |
+| ![Provider selector with free, preset, and custom choices](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/settings-services.png) | ![DeepSeek preset with an empty API key field](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/settings-preset.png) |
+
+| Output settings | Glossary |
+| --- | --- |
+| ![Page range, output format, and bilingual page order settings](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/settings-output.png) | ![Glossary export setting](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/settings-glossary.png) |
+
+**Advanced**
+
+![Minimum text length, font preference, and custom prompt settings](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/settings-advanced.png)
+
+</details>
 
 ## Build
 

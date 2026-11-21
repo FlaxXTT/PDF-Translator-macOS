@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fs;
 use std::path::Path;
 
@@ -7,6 +7,13 @@ use lopdf::{Dictionary, Document, Object, ObjectId, Stream, dictionary};
 
 use super::{Cancel, PdfOptions, PdfResult, display};
 use crate::APP_NAME;
+
+#[path = "pdf_spread_metadata.rs"]
+mod spread_metadata;
+
+#[cfg(test)]
+#[path = "pdf_spread_tests.rs"]
+mod spread_tests;
 
 pub(super) fn save(
     input: &Path,
@@ -108,7 +115,8 @@ fn compose_dual(
         .map_err(display)?;
     let pages = original.new_object_id();
     let mut children = Vec::new();
-    for (index, (source, translated)) in source_pages.into_iter().zip(translated_pages).enumerate()
+    let mut spreads = HashMap::new();
+    for (index, (&source, translated)) in source_pages.iter().zip(translated_pages).enumerate()
     {
         cancel.check()?;
         if opts.only_selected && !selected.contains(&index) {
@@ -126,7 +134,10 @@ fn compose_dual(
         } else {
             let left_form = form(&mut original, left)?;
             let right_form = form(&mut original, right)?;
-            insert_spread(&mut original, source, pages, left_form, right_form)?;
+            let placement = insert_spread(
+                &mut original, source, pages, left_form, right_form, !opts.translated_first,
+            )?;
+            spreads.insert(source, placement);
             children.push(Object::Reference(source));
         }
     }
@@ -142,6 +153,9 @@ fn compose_dual(
         .get_dictionary_mut(root)
         .map_err(display)?
         .set("Pages", pages);
+    if !opts.alternating {
+        spread_metadata::preserve(&mut original, root, &source_pages, &spreads, cancel)?;
+    }
     original.prune_objects();
     Ok(original)
 }
@@ -299,12 +313,20 @@ fn insert_spread(
     parent: ObjectId,
     mut left: PageForm,
     mut right: PageForm,
-) -> Result<(), String> {
+    original_on_left: bool,
+) -> Result<spread_metadata::Placement, String> {
     let width = left.width + right.width;
     let height = left.height.max(right.height);
     left.matrix[5] += height - left.height;
     right.matrix[4] += left.width;
     right.matrix[5] += height - right.height;
+    let (form, x) = if original_on_left { (&left, 0.) } else { (&right, left.width) };
+    let placement = spread_metadata::Placement {
+        matrix: form.matrix,
+        panel: [x, height - form.height, x + form.width, height],
+    };
+    let annotations = document.get_dictionary(page).map_err(display)?
+        .get(b"Annots").ok().cloned();
     let transform = |matrix: [f64; 6], name: &str| {
         let [a, b, c, d, e, f] = matrix;
         format!("q {a:.6} {b:.6} {c:.6} {d:.6} {e:.6} {f:.6} cm /{name} Do Q\n")
@@ -313,17 +335,18 @@ fn insert_spread(
     let stream = document.add_object(Stream::new(Dictionary::new(), body.into_bytes()));
     let resources =
         dictionary! { "XObject" => dictionary! { "BDLeft" => left.id, "BDRight" => right.id } };
-    document.objects.insert(
-        page,
-        Object::Dictionary(dictionary! {
+    let mut spread = dictionary! {
             "Type" => "Page",
             "Parent" => parent,
             "MediaBox" => numbers([0., 0., width, height]),
             "Resources" => resources,
             "Contents" => stream,
-        }),
-    );
-    Ok(())
+    };
+    if let Some(annotations) = annotations {
+        spread.set("Annots", annotations);
+    }
+    document.objects.insert(page, Object::Dictionary(spread));
+    Ok(placement)
 }
 
 fn numbers<const N: usize>(numbers: [f64; N]) -> Object {
