@@ -12,13 +12,13 @@ PDF layout and rendering run locally. Cloud translation sends extracted text to 
 
 ## See the app in action
 
-![Bilingual workspace preview with the download menu open](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-preview.png)
+![Bilingual workspace preview with the download menu open](https://raw.githubusercontent.com/FlaxXTT/PDF-Translator-macOS/c2f192ea2803343764f3ccf8a6c23aedb71b906a/build-13/workspace-preview.png)
 
 The screenshots use sample PDFs and a local simulated translation service.
 
 ### Original links and annotations in bilingual exports
 
-![An exported bilingual spread with links and highlights on the original panel](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/export-links.png)
+![An exported bilingual spread with links and highlights on the original panel](https://raw.githubusercontent.com/FlaxXTT/PDF-Translator-macOS/c2f192ea2803343764f3ccf8a6c23aedb71b906a/build-13/export-links.png)
 
 The original panel keeps the table-of-contents link, web reference, highlight, and comment. The translation occupies the other panel.
 
@@ -27,11 +27,11 @@ The original panel keeps the table-of-contents link, web reference, highlight, a
 
 | Workspace | Link import |
 | --- | --- |
-| ![Local file import and the original and translated PDF preview](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-empty.png) | ![Workspace with Link selected and a sample PDF URL](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-link.png) |
+| ![Local file import and the original and translated PDF preview](https://raw.githubusercontent.com/FlaxXTT/PDF-Translator-macOS/c2f192ea2803343764f3ccf8a6c23aedb71b906a/build-13/workspace-empty.png) | ![Workspace with Link selected and a sample PDF URL](https://raw.githubusercontent.com/FlaxXTT/PDF-Translator-macOS/c2f192ea2803343764f3ccf8a6c23aedb71b906a/build-13/workspace-link.png) |
 
 | Page selection | Compact layout |
 | --- | --- |
-| ![Workspace with a page range and the language menu expanded](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-options.png) | ![Narrow window with separate Setup and Preview tabs](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-compact.png) |
+| ![Workspace with a page range and the language menu expanded](https://raw.githubusercontent.com/FlaxXTT/PDF-Translator-macOS/c2f192ea2803343764f3ccf8a6c23aedb71b906a/build-13/workspace-options.png) | ![Narrow window with separate Setup and Preview tabs](https://raw.githubusercontent.com/FlaxXTT/PDF-Translator-macOS/c2f192ea2803343764f3ccf8a6c23aedb71b906a/build-13/workspace-compact.png) |
 
 </details>
 
@@ -40,11 +40,11 @@ The original panel keeps the table-of-contents link, web reference, highlight, a
 
 | Translation progress | Retry |
 | --- | --- |
-| ![Batch translation with progress and a Cancel button](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-progress.png) | ![Failed translation with an error and Retry button](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-retry.png) |
+| ![Batch translation with progress and a Cancel button](https://raw.githubusercontent.com/FlaxXTT/PDF-Translator-macOS/c2f192ea2803343764f3ccf8a6c23aedb71b906a/build-13/workspace-progress.png) | ![Failed translation with an error and Retry button](https://raw.githubusercontent.com/FlaxXTT/PDF-Translator-macOS/c2f192ea2803343764f3ccf8a6c23aedb71b906a/build-13/workspace-retry.png) |
 
 **Export feedback**
 
-![Downloadable result with a warning that source text was retained](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/workspace-warning.png)
+![Downloadable result with a warning that source text was retained](https://raw.githubusercontent.com/FlaxXTT/PDF-Translator-macOS/c2f192ea2803343764f3ccf8a6c23aedb71b906a/build-13/workspace-warning.png)
 
 </details>
 
@@ -53,15 +53,15 @@ The original panel keeps the table-of-contents link, web reference, highlight, a
 
 | Provider selection | Provider preset |
 | --- | --- |
-| ![Provider selector with free, preset, and custom choices](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/settings-services.png) | ![DeepSeek preset with an empty API key field](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/settings-preset.png) |
+| ![Provider selector with free, preset, and custom choices](https://raw.githubusercontent.com/FlaxXTT/PDF-Translator-macOS/c2f192ea2803343764f3ccf8a6c23aedb71b906a/build-13/settings-services.png) | ![DeepSeek preset with an empty API key field](https://raw.githubusercontent.com/FlaxXTT/PDF-Translator-macOS/c2f192ea2803343764f3ccf8a6c23aedb71b906a/build-13/settings-preset.png) |
 
 | Output settings | Glossary |
 | --- | --- |
-| ![Page range, output format, and bilingual page order settings](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/settings-output.png) | ![Glossary export setting](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/settings-glossary.png) |
+| ![Page range, output format, and bilingual page order settings](https://raw.githubusercontent.com/FlaxXTT/PDF-Translator-macOS/c2f192ea2803343764f3ccf8a6c23aedb71b906a/build-13/settings-output.png) | ![Glossary export setting](https://raw.githubusercontent.com/FlaxXTT/PDF-Translator-macOS/c2f192ea2803343764f3ccf8a6c23aedb71b906a/build-13/settings-glossary.png) |
 
 **Advanced**
 
-![Minimum text length, font preference, and custom prompt settings](https://github.com/FlaxXTT/PDF-Translator-macOS/releases/download/v2.10.2-macos.13/settings-advanced.png)
+![Minimum text length, font preference, and custom prompt settings](https://raw.githubusercontent.com/FlaxXTT/PDF-Translator-macOS/c2f192ea2803343764f3ccf8a6c23aedb71b906a/build-13/settings-advanced.png)
 
 </details>
 
