@@ -5,190 +5,439 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <title>PDF Translator</title>
-  <link rel="icon" href="data:,">
+  <link rel="icon" type="image/png" href="/icon.png">
   <link rel="stylesheet" href="/style.css">
   <script type="module" src="/app.js"></script>
 </head>
 <body>
   <main class="app">
     <header class="topbar">
-      <div class="top-tabs" role="tablist" aria-label="Main views">
-        <button id="workspace-tab" role="tab" aria-controls="yepage-main" aria-selected="true">Workspace</button>
-        <button id="settings-tab" role="tab" aria-controls="yepage-settings" aria-selected="false" tabindex="-1">Settings</button>
+      <div class="topbar-spacer" aria-hidden="true"></div>
+      <div class="top-tabs" role="tablist" aria-label="主视图">
+        <button id="workspace-tab" role="tab" aria-controls="yepage-main" aria-selected="true">工作台</button>
+        <button id="zotero-tab" role="tab" aria-controls="yepage-zotero" aria-selected="false" tabindex="-1">Zotero</button>
+        <button id="settings-tab" role="tab" aria-controls="yepage-settings" aria-selected="false" tabindex="-1">设置</button>
+      </div>
+      <div class="topbar-right">
+        <button class="service-pill" id="active-service" type="button" title="点击切换翻译服务">
+          <span class="service-dot" aria-hidden="true"></span>
+          <span id="workspace-active-service">SiliconFlow Free</span>
+        </button>
       </div>
     </header>
     <section class="workspace" id="yepage-main" role="tabpanel" aria-labelledby="workspace-tab">
-      <div class="workspace-view-tabs" id="workspace-view-tabs" role="tablist" aria-label="Workspace view" hidden>
-        <button type="button" id="workspace-config-tab" role="tab" aria-controls="workspace-config-panel" aria-selected="true">Setup</button>
-        <button type="button" id="workspace-preview-tab" role="tab" aria-controls="workspace-preview" aria-selected="false" tabindex="-1">Preview</button>
+      <div class="workspace-view-tabs" id="workspace-view-tabs" role="tablist" aria-label="工作台视图" hidden>
+        <button type="button" id="workspace-config-tab" role="tab" aria-controls="workspace-config-panel" aria-selected="true">配置</button>
+        <button type="button" id="workspace-preview-tab" role="tab" aria-controls="workspace-preview" aria-selected="false" tabindex="-1">预览</button>
       </div>
       <input id="file-input" class="sr-only" type="file" accept=".pdf,application/pdf" multiple tabindex="-1">
-      <section class="controls" id="workspace-config-panel" aria-label="Translation setup">
+      <section class="controls" id="workspace-config-panel" aria-label="翻译配置">
         <div class="controls-body">
           <section class="file-controls" aria-labelledby="files-heading">
             <div class="section-heading">
-              <h2 id="files-heading">Files <span id="file-count" class="file-count" hidden></span></h2>
+              <h2 id="files-heading">文件 <span id="file-count" class="file-count" hidden></span></h2>
               <fieldset class="segments" id="source-toggle">
-                <legend class="sr-only">File source</legend>
-                <label><input type="radio" name="source" value="file" checked><span>Local</span></label>
-                <label><input type="radio" name="source" value="link"><span>Link</span></label>
+                <legend class="sr-only">文件来源</legend>
+                <label><input type="radio" name="source" value="file" checked><span>本地</span></label>
+                <label><input type="radio" name="source" value="link"><span>链接</span></label>
               </fieldset>
             </div>
             <div id="workspace-upload" hidden>
-              <button type="button" class="pick-files" id="pick-files" disabled><span class="plus-icon" aria-hidden="true"></span>Add PDF</button>
+              <button type="button" class="pick-files" id="pick-files" disabled><span class="plus-icon" aria-hidden="true"></span>添加 PDF</button>
             </div>
             <form class="link-row" id="link-form" hidden>
-              <input id="workspace-link" type="url" inputmode="url" autocomplete="off" placeholder="https://…" aria-label="PDF link" required>
-              <button class="primary" id="workspace-link-import" disabled>Import</button>
+              <input id="workspace-link" type="url" inputmode="url" autocomplete="off" placeholder="https://…" aria-label="PDF 链接" required>
+              <button class="primary" id="workspace-link-import" disabled>导入</button>
             </form>
-            <ul class="upload-list" id="upload-list" aria-label="Added PDFs" hidden></ul>
+            <ul class="upload-list" id="upload-list" aria-label="已添加的 PDF" hidden></ul>
           </section>
           <section class="translation-controls" aria-labelledby="translation-heading">
-            <h2 id="translation-heading">Translation</h2>
+            <h2 id="translation-heading">翻译选项</h2>
             <div class="language-row">
-              <div class="field"><span id="workspace-language-from-label">From</span><div class="select-wrap"><select id="workspace-language-from" aria-labelledby="workspace-language-from-label" data-setting="from"></select></div></div>
-              <button class="secondary swap" id="workspace-swap" type="button" aria-label="Swap languages" title="Swap languages">⇄</button>
-              <div class="field"><span id="workspace-language-to-label">To</span><div class="select-wrap"><select id="workspace-language-to" aria-labelledby="workspace-language-to-label" data-setting="to"></select></div></div>
+              <div class="field"><span id="workspace-language-from-label">源语言</span><div class="select-wrap"><select id="workspace-language-from" aria-labelledby="workspace-language-from-label" data-setting="from"></select></div></div>
+              <button class="secondary swap" id="workspace-swap" type="button" aria-label="互换语言" title="互换语言">⇄</button>
+              <div class="field"><span id="workspace-language-to-label">目标语言</span><div class="select-wrap"><select id="workspace-language-to" aria-labelledby="workspace-language-to-label" data-setting="to"></select></div></div>
             </div>
             <div class="option-row">
-              <label class="field"><span>Pages</span><input id="workspace-page-input" type="text" placeholder="All" autocomplete="off" spellcheck="false" data-setting="pages"></label>
-              <div class="field"><span id="workspace-output-format-label">Output</span><div class="select-wrap"><select id="workspace-output-format" aria-labelledby="workspace-output-format-label" data-setting="format">
-                <option value="both">Both PDFs</option><option value="mono">Translated PDF</option><option value="dual">Bilingual PDF</option>
+              <label class="field"><span>页码范围</span><input id="workspace-page-input" type="text" placeholder="全部" autocomplete="off" spellcheck="false" data-setting="pages"></label>
+              <div class="field"><span id="workspace-output-format-label">输出格式</span><div class="select-wrap"><select id="workspace-output-format" aria-labelledby="workspace-output-format-label" data-setting="format">
+                <option value="both">译文 + 双语 PDF</option><option value="mono">仅译文 PDF</option><option value="dual">双语对照 PDF</option>
               </select></div></div>
             </div>
           </section>
-          <section class="service-summary" aria-labelledby="service-heading">
-            <h2 id="service-heading">Translation service</h2>
-            <button class="service-shortcut" id="active-service" type="button">
-              <strong id="workspace-active-service">SiliconFlow Free</strong><span class="chevron right" aria-hidden="true"></span>
-            </button>
-          </section>
         </div>
       </section>
-      <section class="preview-pane" id="workspace-preview" aria-label="PDF preview">
+      <section class="preview-pane" id="workspace-preview" aria-label="PDF 预览">
         <div class="preview-toolbar">
           <div class="preview-title">
-            <h2 id="preview-heading">PDF preview</h2>
+            <h2 id="preview-heading">PDF 预览</h2>
             <span id="preview-filename" class="preview-filename" hidden></span>
             <div class="select-wrap document-select" id="document-select" hidden>
-              <span id="workspace-files-label" class="sr-only">Preview file</span>
+              <span id="workspace-files-label" class="sr-only">预览文件</span>
               <select id="workspace-files" aria-labelledby="workspace-files-label"></select>
             </div>
           </div>
           <div class="preview-tools">
             <fieldset class="segments versions" id="workspace-preview-version" hidden>
-              <legend class="sr-only">Preview version</legend>
-              <label><input type="radio" name="version" value="original" checked><span>Original</span></label>
-              <label><input type="radio" name="version" value="mono"><span>Translation</span></label>
-              <label><input type="radio" name="version" value="dual"><span>Bilingual</span></label>
+              <legend class="sr-only">预览版本</legend>
+              <label><input type="radio" name="version" value="original" checked><span>原文</span></label>
+              <label><input type="radio" name="version" value="mono"><span>译文</span></label>
+              <label><input type="radio" name="version" value="dual"><span>双语</span></label>
             </fieldset>
             <div class="download-control" id="download-control" hidden>
-              <button class="secondary download-button" id="workspace-download-button" aria-controls="workspace-downloads" aria-expanded="false">Download<span class="chevron down" aria-hidden="true"></span></button>
+              <button class="secondary download-button" id="workspace-download-button" aria-controls="workspace-downloads" aria-expanded="false">下载<span class="chevron down" aria-hidden="true"></span></button>
               <div class="download-menu" id="workspace-downloads" hidden></div>
             </div>
           </div>
         </div>
-        <div class="document-preview" id="document-preview" aria-label="PDF preview">
+        <div class="document-preview" id="document-preview" aria-label="PDF 预览">
           <button class="empty-preview" id="workspace-preview-empty" type="button" disabled>
             <span class="file-icon" aria-hidden="true"></span>
-            <span class="empty-action" id="preview-empty-label">Choose PDF</span>
-            <span class="empty-hint" id="preview-drop-hint">or drop it here</span>
+            <span class="empty-action" id="preview-empty-label">选择 PDF</span>
+            <span class="empty-hint" id="preview-drop-hint">或拖拽文件到此处</span>
           </button>
-          <div class="canvas-wrap" id="canvas-wrap" role="group" aria-label="Page preview" tabindex="0" hidden>
-            <canvas id="pdf-canvas" aria-label="PDF page preview"></canvas>
+          <div class="canvas-wrap" id="canvas-wrap" role="group" aria-label="页面预览" tabindex="0" hidden>
+            <canvas id="pdf-canvas" aria-label="PDF 页面预览"></canvas>
           </div>
           <p class="preview-message" id="preview-message" role="status" hidden></p>
         </div>
         <div class="preview-navigation" id="preview-navigation" hidden>
-          <button id="preview-prev" aria-label="Previous page" title="Previous page" type="button"><span class="chevron left" aria-hidden="true"></span></button>
+          <button id="preview-prev" aria-label="上一页" title="上一页" type="button"><span class="chevron left" aria-hidden="true"></span></button>
           <span class="page-indicator">
-            <input id="preview-page-index" aria-label="Current page" autocomplete="off" inputmode="numeric" size="3">
-            <span aria-hidden="true">/</span><span id="preview-page-total" aria-label="Page count">1</span>
+            <input id="preview-page-index" aria-label="当前页" autocomplete="off" inputmode="numeric" size="3">
+            <span aria-hidden="true">/</span><span id="preview-page-total" aria-label="总页数">1</span>
           </span>
-          <button id="preview-next" aria-label="Next page" title="Next page" type="button"><span class="chevron right" aria-hidden="true"></span></button>
+          <button id="preview-next" aria-label="下一页" title="下一页" type="button"><span class="chevron right" aria-hidden="true"></span></button>
         </div>
       </section>
       <div class="action-dock">
         <p class="status sr-only" id="workspace-job-status" role="status"></p>
         <div class="progress-row">
-          <progress id="workspace-progress" aria-label="Translation progress" max="100" hidden></progress>
+          <progress id="workspace-progress" aria-label="翻译进度" max="100" hidden></progress>
           <span id="workspace-progress-value" class="progress-value" aria-hidden="true" hidden></span>
         </div>
         <div class="actions">
-          <button class="primary" id="workspace-translate" aria-describedby="workspace-job-status" disabled>Add a PDF</button>
-          <button class="secondary" id="workspace-cancel" hidden>Cancel</button>
-          <button class="secondary" id="workspace-retry" hidden>Retry</button>
+          <button class="primary" id="workspace-translate" aria-describedby="workspace-job-status" disabled>添加 PDF</button>
+          <button class="secondary" id="workspace-cancel" hidden>取消</button>
+          <button class="secondary" id="workspace-retry" hidden>重试</button>
         </div>
       </div>
     </section>
+    <section id="yepage-zotero" class="zotero-panel" role="tabpanel" aria-labelledby="zotero-tab" hidden>
+      <!-- Zotero Library View -->
+      <div id="zotero-library-view" class="z-lib-view">
+        <div class="z-lib-header">
+          <div class="z-lib-title-group">
+            <h2 class="z-lib-title">Zotero 文献</h2>
+            <span id="zotero-lib-meta" class="z-lib-count">加载中…</span>
+          </div>
+          <div class="z-lib-controls">
+            <input id="zotero-lib-search" type="search" placeholder="搜索标题、作者…" autocomplete="off">
+            <div class="z-seg">
+              <button type="button" id="zotero-filter-all" class="active">全部</button>
+              <button type="button" id="zotero-filter-done">已译</button>
+            </div>
+            <select id="zotero-lib-sort" class="z-sort-select" aria-label="排序方式">
+              <option value="recent">最近</option>
+              <option value="translated">已译优先</option>
+            </select>
+            <button type="button" class="secondary z-sm" id="zotero-lib-folder" title="打开集中管理的译文输出目录">输出目录</button>
+            <button type="button" class="secondary z-sm" id="zotero-lib-refresh" title="刷新文献列表">刷新</button>
+            <button type="button" class="primary z-sm" id="zotero-quick-setup">一键接入</button>
+          </div>
+        </div>
+        <div id="zotero-plugin-banner" class="z-plugin-banner" hidden>
+          <span id="zotero-plugin-banner-text"></span>
+          <button type="button" class="primary z-sm" id="zotero-banner-install">一键安装并唤起 Zotero</button>
+        </div>
+        <div class="z-lib-body">
+          <aside id="zotero-folder-sidebar" class="z-folder-sidebar" aria-label="Zotero 文件夹分类"></aside>
+          <div id="zotero-lib-list" class="z-lib-list"></div>
+        </div>
+      </div>
+
+      <!-- Zotero Bilingual Reader View -->
+      <div id="zotero-reader-view" class="z-reader-view" hidden>
+        <div class="z-reader-bar">
+          <div class="z-bar-left">
+            <button type="button" class="secondary z-sm" id="zotero-back">← 返回</button>
+            <button type="button" class="secondary z-sm" id="zotero-outline-toggle" title="展开/收起论文目录">目录</button>
+            <span id="zotero-doc-title" class="z-doc-title"></span>
+            <span id="zotero-page-badge" class="z-pill">1 / 1</span>
+          </div>
+          <div class="z-bar-center">
+            <div class="z-seg">
+              <button type="button" id="zotero-mode-pdf" class="active">PDF 对照</button>
+              <button type="button" id="zotero-mode-text">双语纯文</button>
+              <button type="button" id="zotero-mode-zh">仅译文</button>
+            </div>
+          </div>
+          <div class="z-bar-right">
+            <button type="button" class="secondary z-sm" id="zotero-search-toggle" title="中英双向搜索 (⌘F)">搜索</button>
+            <button type="button" class="primary z-sm" id="zotero-translate-btn">开始翻译</button>
+            <div class="z-more-wrap">
+              <button type="button" class="secondary z-sm" id="zotero-more-btn" aria-expanded="false">更多 ▾</button>
+              <div id="zotero-more-menu" class="z-more-menu" hidden>
+                <div class="z-menu-row">
+                  <span>译文字号</span>
+                  <div class="z-zoom">
+                    <button type="button" id="zotero-font-dec">A−</button>
+                    <span id="zotero-font-label">16.5</span>
+                    <button type="button" id="zotero-font-inc">A+</button>
+                  </div>
+                </div>
+                <div class="z-menu-row">
+                  <span>中文字体</span>
+                  <button type="button" class="secondary z-sm" id="zotero-font-toggle">切换宋体</button>
+                </div>
+                <div class="z-menu-row">
+                  <span>术语高亮</span>
+                  <button type="button" class="secondary z-sm" id="zotero-term-toggle">已开启</button>
+                </div>
+                <div class="z-menu-sep"></div>
+                <button type="button" class="z-menu-item" id="zotero-glossary-toggle">术语表</button>
+                <button type="button" class="z-menu-item" id="zotero-reparse-btn">重新解析 PDF（过滤图片与三线表）</button>
+                <button type="button" class="z-menu-item" id="zotero-to-workspace">载入工作台生成原排版双语 PDF</button>
+                <button type="button" class="z-menu-item" id="zotero-export-btn">导出双语 Markdown</button>
+                <button type="button" class="z-menu-item" id="zotero-folder-btn">打开集中输出目录</button>
+              </div>
+            </div>
+          </div>
+          <div class="z-progress-track"><div id="zotero-progress-fill" class="z-progress-fill"></div></div>
+        </div>
+
+        <div id="zotero-search-bar" class="z-search-bar" hidden>
+          <input id="zotero-search-input" type="text" placeholder="输入中文或英文关键词搜索句子…" autocomplete="off">
+          <span id="zotero-search-count" class="z-search-count"></span>
+          <button type="button" id="zotero-search-prev" class="secondary z-icon" title="上一处">↑</button>
+          <button type="button" id="zotero-search-next" class="secondary z-icon" title="下一处">↓</button>
+          <button type="button" id="zotero-search-close" class="secondary z-icon" title="关闭">✕</button>
+        </div>
+
+        <dialog id="zotero-glossary" class="z-glossary" aria-labelledby="zotero-glossary-title">
+          <header>
+            <h2 id="zotero-glossary-title">论文术语表</h2>
+            <form method="dialog"><button type="submit" class="secondary z-sm" aria-label="关闭术语表">关闭</button></form>
+          </header>
+          <p id="zotero-glossary-status" role="status"></p>
+          <ul id="zotero-glossary-list"></ul>
+          <footer>
+            <button type="button" class="secondary z-sm" id="zotero-glossary-recover">从已译内容补提取</button>
+            <a class="secondary z-sm" id="zotero-glossary-export" hidden>导出 JSON</a>
+          </footer>
+        </dialog>
+
+        <div id="zotero-reader-status" class="z-status-box" hidden></div>
+
+        <div id="zotero-reader-body" class="z-reader-body" hidden>
+          <aside id="zotero-outline-drawer" class="z-outline-drawer" hidden>
+            <div class="z-outline-head">
+              <div class="z-drawer-tabs">
+                <button type="button" id="zotero-tab-outline" class="active">目录</button>
+                <button type="button" id="zotero-tab-notes">笔记 <span id="zotero-notes-count"></span></button>
+              </div>
+              <button type="button" id="zotero-outline-close" class="z-outline-x">✕</button>
+            </div>
+            <div id="zotero-outline-list" class="z-outline-list"></div>
+            <div id="zotero-notes-list" class="z-outline-list" hidden></div>
+          </aside>
+          <div id="zotero-split" class="z-split" data-mode="pdf">
+            <div id="zotero-pane-left" class="z-pane z-pane-left">
+              <div class="z-pdf-zoom-dock" id="zotero-pdf-zoom" title="缩放 PDF 原文（支持按住鼠标中键滚动缩放）">
+                <button type="button" id="zotero-zoom-out" title="缩小原文">−</button>
+                <span id="zotero-zoom-label" title="点击重置为 100%">100%</span>
+                <button type="button" id="zotero-zoom-in" title="放大原文">+</button>
+              </div>
+              <div id="zotero-pdf-stream" class="z-pdf-stream"></div>
+              <div id="zotero-en-stream" class="z-text-stream" hidden></div>
+            </div>
+            <div id="zotero-splitter" class="z-splitter"></div>
+            <div id="zotero-pane-right" class="z-pane z-pane-right">
+              <div id="zotero-zh-stream" class="z-tr-stream"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="zotero-focus-bar" class="z-focus-rail" hidden>
+          <span id="zotero-focus-meta" class="z-rail-meta" title="当前选中句">P1</span>
+          <span class="z-rail-sep"></span>
+          <div class="z-rail-dots">
+            <button type="button" class="z-dot yellow" data-hl="yellow" data-tip="暖黄高亮"></button>
+            <button type="button" class="z-dot red" data-hl="red" data-tip="朱红高亮"></button>
+            <button type="button" class="z-dot blue" data-hl="blue" data-tip="晴蓝高亮"></button>
+            <button type="button" class="z-dot green" data-hl="green" data-tip="翠绿高亮"></button>
+          </div>
+          <span class="z-rail-sep"></span>
+          <button type="button" id="zotero-note-btn" class="z-rail-btn" data-tip="写 / 编辑双语笔记">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/>
+            </svg>
+          </button>
+          <button type="button" id="zotero-star-btn" class="z-rail-btn" data-tip="收藏此句">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </button>
+          <button type="button" id="zotero-retranslate" class="z-rail-btn" data-tip="重新翻译此句">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/>
+            </svg>
+          </button>
+          <button type="button" id="zotero-unmark-btn" class="z-rail-btn danger" data-tip="清除高亮与笔记" hidden>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>
+            </svg>
+          </button>
+          <span class="z-rail-sep"></span>
+          <button type="button" id="zotero-focus-clear" class="z-rail-btn" data-tip="取消选中 (Esc)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        <div id="zotero-note-editor" class="z-note-editor" hidden>
+          <div class="z-note-editor-head">
+            <span id="zotero-note-editor-title">双语同步笔记</span>
+            <div class="z-hl-dots" id="zotero-note-colors">
+              <button type="button" class="z-dot yellow" data-note-color="yellow"></button>
+              <button type="button" class="z-dot red" data-note-color="red"></button>
+              <button type="button" class="z-dot blue" data-note-color="blue"></button>
+              <button type="button" class="z-dot green" data-note-color="green"></button>
+            </div>
+          </div>
+          <div id="zotero-note-quote" class="z-note-quote"></div>
+          <textarea id="zotero-note-input" rows="3" placeholder="写下你的批注或想法（将同步显示在原文与译文对应位置）…"></textarea>
+          <div class="z-note-editor-actions">
+            <button type="button" id="zotero-note-delete" class="secondary danger z-sm" hidden>删除笔记</button>
+            <div style="display:flex;gap:6px;margin-left:auto;">
+              <button type="button" id="zotero-note-cancel" class="secondary z-sm">取消</button>
+              <button type="button" id="zotero-note-save" class="primary z-sm">保存</button>
+            </div>
+          </div>
+        </div>
+        <div id="zotero-term-tip" class="z-term-tip" hidden></div>
+      </div>
+
+      <div id="zotero-toast" class="z-toast"></div>
+    </section>
     <section id="yepage-settings" class="settings" role="tabpanel" aria-labelledby="settings-tab" hidden>
       <div class="settings-heading">
-        <div class="active-label"><span>Active</span><strong id="settings-active-service">SiliconFlow Free</strong></div>
+        <div class="active-label"><span>当前服务</span><strong id="settings-active-service">SiliconFlow Free</strong></div>
         <span class="status" id="settings-status" role="status"></span>
-        <button class="secondary" id="settings-save">Save</button>
+        <button class="secondary" id="settings-save">保存设置</button>
       </div>
       <div class="settings-layout">
-        <div class="settings-categories" role="tablist" aria-label="Settings categories" aria-orientation="vertical">
-          <button id="settings-services-tab" role="tab" aria-controls="settings-services" aria-selected="true">Services</button>
-          <button id="settings-output-tab" role="tab" aria-controls="settings-output" aria-selected="false" tabindex="-1">Output</button>
-          <button id="settings-terms-tab" role="tab" aria-controls="settings-terms" aria-selected="false" tabindex="-1">Glossary</button>
-          <button id="settings-advanced-tab" role="tab" aria-controls="settings-advanced" aria-selected="false" tabindex="-1">Advanced</button>
+        <div class="settings-categories" role="tablist" aria-label="设置分类" aria-orientation="vertical">
+          <button id="settings-services-tab" role="tab" aria-controls="settings-services" aria-selected="true">翻译服务</button>
+          <button id="settings-output-tab" role="tab" aria-controls="settings-output" aria-selected="false" tabindex="-1">输出设置</button>
+          <button id="settings-terms-tab" role="tab" aria-controls="settings-terms" aria-selected="false" tabindex="-1">术语表</button>
+          <button id="settings-zotero-tab" role="tab" aria-controls="settings-zotero" aria-selected="false" tabindex="-1">Zotero</button>
+          <button id="settings-advanced-tab" role="tab" aria-controls="settings-advanced" aria-selected="false" tabindex="-1">高级设置</button>
         </div>
         <div class="settings-content">
           <section id="settings-services" class="service-grid" role="tabpanel" aria-labelledby="settings-services-tab">
             <div class="settings-group builtin-service">
-              <h2>Provider</h2>
-              <div class="field"><span id="settings-provider-label">Translation service</span><div class="select-wrap"><select id="settings-provider" aria-labelledby="settings-provider-label">
+              <h2>服务提供商</h2>
+              <div class="field"><span id="settings-provider-label">翻译服务</span><div class="select-wrap"><select id="settings-provider" aria-labelledby="settings-provider-label">
                 <option value="SiliconFlowFree">SiliconFlow Free</option>
-                <optgroup label="Model presets" id="settings-model-presets"></optgroup>
-                <option value="custom">Custom service</option>
+                <optgroup label="模型预设" id="settings-model-presets"></optgroup>
+                <option value="custom">自定义服务</option>
               </select></div></div>
-              <label class="check-field"><input type="checkbox" data-setting="json_mode">JSON mode</label>
-              <p class="status">Text is sent to the selected service.</p>
+              <label class="check-field"><input type="checkbox" data-setting="json_mode">JSON 模式</label>
+              <p class="status">提取的文本将发送至所选翻译服务。</p>
             </div>
             <form class="settings-group profile-form" id="profile-form" aria-labelledby="settings-profile-heading">
-              <h2 id="settings-profile-heading">Custom service</h2>
+              <h2 id="settings-profile-heading">自定义服务</h2>
               <div class="profile-list" data-custom-profile>
-                <div class="field"><span id="settings-profile-list-label">Saved profiles</span><div class="select-wrap"><select id="settings-profile-list" aria-labelledby="settings-profile-list-label"><option value="">No saved profiles</option></select></div></div>
-                <button class="secondary danger" type="button" id="settings-profile-delete" disabled>Delete</button>
+                <div class="field"><span id="settings-profile-list-label">已保存配置</span><div class="select-wrap"><select id="settings-profile-list" aria-labelledby="settings-profile-list-label"><option value="">暂无已保存配置</option></select></div></div>
+                <button class="secondary danger" type="button" id="settings-profile-delete" disabled>删除</button>
               </div>
               <div class="option-row" data-custom-profile>
-                <label class="field"><span>Name</span><input id="settings-profile-name" type="text" autocomplete="off" maxlength="80"></label>
+                <label class="field"><span>名称</span><input id="settings-profile-name" type="text" autocomplete="off" maxlength="80"></label>
                 <label class="field"><span>Model ID</span><input id="settings-profile-model" type="text" autocapitalize="none" autocomplete="off" maxlength="200"></label>
               </div>
               <label class="field" data-custom-profile><span>API URL</span><input id="settings-profile-url" type="url" inputmode="url" placeholder="https://api.example.com/v1" autocomplete="off" maxlength="2048"></label>
-              <label class="field"><span>API key</span><span class="password-wrap">
+              <label class="field"><span>API Key</span><span class="password-wrap">
                 <input id="settings-profile-key" type="password" autocomplete="off" spellcheck="false">
-                <button class="password-toggle" id="profile-key-toggle" type="button" aria-label="Show API key" aria-pressed="false"><span aria-hidden="true"></span></button>
+                <button class="password-toggle" id="profile-key-toggle" type="button" aria-label="显示 API Key" aria-pressed="false"><span aria-hidden="true"></span></button>
               </span></label>
               <div class="profile-actions">
-                <button class="secondary" type="button" id="settings-profile-test">Test connection</button>
-                <button class="secondary" type="button" id="settings-profile-save" data-custom-profile>Save profile</button>
-                <button class="primary" type="submit" id="settings-profile-apply">Apply</button>
+                <button class="secondary" type="button" id="settings-profile-test">测试连接</button>
+                <button class="secondary" type="button" id="settings-profile-save" data-custom-profile>保存配置</button>
+                <button class="primary" type="submit" id="settings-profile-apply">应用</button>
               </div>
               <p id="settings-profile-status" class="status" role="status"></p>
             </form>
           </section>
           <section class="settings-group" id="settings-output" role="tabpanel" aria-labelledby="settings-output-tab" hidden>
             <div class="option-row">
-              <label class="field"><span>Pages</span><input id="settings-page-input" type="text" placeholder="All" autocomplete="off" spellcheck="false" data-setting="pages"></label>
-              <div class="field"><span id="settings-output-format-label">Output</span><div class="select-wrap"><select id="settings-output-format" aria-labelledby="settings-output-format-label" data-setting="format">
-                <option value="both">Both PDFs</option><option value="mono">Translated PDF</option><option value="dual">Bilingual PDF</option>
+              <label class="field"><span>页码范围</span><input id="settings-page-input" type="text" placeholder="全部" autocomplete="off" spellcheck="false" data-setting="pages"></label>
+              <div class="field"><span id="settings-output-format-label">输出格式</span><div class="select-wrap"><select id="settings-output-format" aria-labelledby="settings-output-format-label" data-setting="format">
+                <option value="both">译文 + 双语 PDF</option><option value="mono">仅译文 PDF</option><option value="dual">双语对照 PDF</option>
               </select></div></div>
             </div>
-            <label class="check-field"><input type="checkbox" data-setting="translated_only">Export selected pages only</label>
-            <label class="check-field"><input type="checkbox" data-setting="translated_first">Translation first in bilingual PDF</label>
-            <label class="check-field"><input type="checkbox" data-setting="alternate">Alternate pages in bilingual PDF</label>
+            <label class="check-field"><input type="checkbox" data-setting="translated_only">仅导出选定页码</label>
+            <label class="check-field"><input type="checkbox" data-setting="translated_first">双语 PDF 中译文排在原文前</label>
+            <label class="check-field"><input type="checkbox" data-setting="alternate">双语 PDF 交替排页</label>
           </section>
           <section class="settings-group" id="settings-terms" role="tabpanel" aria-labelledby="settings-terms-tab" hidden>
-            <label class="check-field"><input type="checkbox" data-setting="glossary">Save glossary</label>
+            <label class="check-field"><input type="checkbox" data-setting="glossary" checked>保存术语表（Glossary）</label>
+          </section>
+          <section class="settings-zotero-wrap" id="settings-zotero" role="tabpanel" aria-labelledby="settings-zotero-tab" hidden>
+            <div class="zset-card zset-card-primary">
+              <div class="zset-head">
+                <div>
+                  <h2 class="zset-title">Zotero 插件接入</h2>
+                  <p class="zset-sub">将 PDF Translator 接入 Zotero，右键论文或按 ⌥⌘T 即可一键打开中英对照</p>
+                </div>
+                <span id="settings-zotero-badge" class="zset-badge">检测中…</span>
+              </div>
+
+              <div class="zset-meta-strip">
+                <div class="zset-meta-item">
+                  <span class="zset-meta-label">连接状态</span>
+                  <span id="settings-zotero-status" class="zset-meta-val">正在检测本机 Zotero 状态…</span>
+                </div>
+                <div class="zset-meta-item">
+                  <span class="zset-meta-label">本地桥接接口</span>
+                  <code id="settings-zotero-bridge" class="zset-code">—</code>
+                </div>
+              </div>
+
+              <div class="zset-actions">
+                <button type="button" class="primary" id="settings-zotero-install">一键配置并唤起 Zotero</button>
+                <button type="button" class="secondary danger" id="settings-zotero-uninstall" hidden>卸载插件</button>
+              </div>
+              <p class="zset-note">
+                无论 Zotero 是否打开，点击后都会自动写入内置的 5 KB 轻量桥接插件并唤起 Zotero；更换新电脑也能一键完成。
+              </p>
+            </div>
+
+            <div class="zset-card">
+              <div class="zset-head">
+                <div>
+                  <h2 class="zset-title">独立译文存储</h2>
+                  <p class="zset-sub">所有 Zotero 译文均存放在此目录，绝不向 Zotero 库写入附件或修改原始链接</p>
+                </div>
+                <span class="zset-badge isolated">存储隔离</span>
+              </div>
+
+              <div class="zset-path-row">
+                <input type="text" id="settings-zotero-dir" placeholder="~/Documents/PDF Translator/Zotero（留空使用默认路径）" autocomplete="off" spellcheck="false" data-setting="zotero_storage_dir">
+                <button type="button" class="secondary" id="settings-zotero-open-dir">打开文件夹</button>
+              </div>
+              <p class="zset-note">
+                通过 Zotero 条目键与原文件 MD5 自动保持关联，重启软件或重新打开文献时不会丢失历史译文。修改路径后点击右上角「保存设置」生效。
+              </p>
+            </div>
           </section>
           <section class="settings-group" id="settings-advanced" role="tabpanel" aria-labelledby="settings-advanced-tab" hidden>
             <div class="option-row">
-              <label class="field"><span>Minimum text length</span><input type="number" min="0" step="1" data-setting="min_text_length"></label>
-              <label class="field"><span>Translation font</span><input type="text" placeholder="Auto" data-setting="font_family"></label>
+              <label class="field"><span>最小文本长度</span><input type="number" min="0" step="1" data-setting="min_text_length"></label>
+              <label class="field"><span>译文字体</span><input type="text" placeholder="自动" data-setting="font_family"></label>
             </div>
-            <label class="field"><span>System prompt</span><textarea rows="4" data-setting="prompt"></textarea></label>
+            <label class="field"><span>System Prompt（附加翻译指令）</span><textarea rows="4" data-setting="prompt"></textarea></label>
           </section>
         </div>
       </div>

@@ -44,6 +44,7 @@ pub(crate) struct Options {
     pub glossary: bool,
     pub min_text_length: usize,
     pub font_family: Option<String>,
+    pub zotero_storage_dir: Option<String>,
 }
 
 impl Default for Options {
@@ -58,9 +59,10 @@ impl Default for Options {
             translated_first: false,
             json_mode: false,
             prompt: String::new(),
-            glossary: false,
+            glossary: true,
             min_text_length: 5,
             font_family: None,
+            zotero_storage_dir: None,
         }
     }
 }
@@ -107,6 +109,7 @@ struct Document {
     status: &'static str,
     result: Option<Arc<PublishedResult>>,
     retained_paragraphs: usize,
+    glossary_failed: bool,
     _directory: TempDir,
 }
 
@@ -148,6 +151,7 @@ impl Document {
         json!({
             "id": self.id, "name": self.name, "source": self.source, "status": self.status,
             "versions": versions, "retained_paragraphs": self.retained_paragraphs,
+            "glossary_failed": self.glossary_failed,
         })
     }
 }
@@ -197,6 +201,8 @@ pub(crate) struct Workbench {
     assets: PathBuf,
     profiles: PathBuf,
     settings: PathBuf,
+    credentials: PathBuf,
+    pub(crate) zotero: crate::zotero::ZoteroManager,
 }
 
 impl Workbench {
@@ -208,6 +214,7 @@ impl Workbench {
     ) -> std::io::Result<Arc<Self>> {
         fs::create_dir_all(data)?;
         let settings = data.join("settings.json");
+        let credentials = data.join("service_credentials.json");
         let profile_path = data.join("service_profiles.json");
         if !profile_path.exists() {
             if let Some(legacy) = legacy_profiles.filter(|path| path.is_file()) {
@@ -222,9 +229,25 @@ impl Workbench {
             .ok()
             .and_then(|bytes| serde_json::from_slice::<Preferences>(&bytes).ok())
             .or_else(|| legacy_settings.and_then(|path| previous_settings(path, &profile_path)));
-        let (options, service) = saved
+        let upgrade = saved.as_ref().is_some_and(|prefs| prefs.schema == 0);
+        let (mut options, mut service) = saved
             .map(|saved| (saved.options, saved.service))
             .unwrap_or_default();
+        if upgrade {
+            options.glossary = true;
+        }
+        let mut credentials_ready = true;
+        if let Service::Custom { name, base_url, key, .. } = &mut service {
+            if let Ok(Some(stored)) = profiles::key_for(&credentials, name, base_url) {
+                *key = stored;
+            } else if !key.is_empty() {
+                credentials_ready = profiles::save_key(&credentials, name, base_url, key).is_ok();
+            }
+        }
+        if upgrade && credentials_ready {
+            // Preserve the old preferences until the credential has been committed.
+            let _ = persist_preferences(&settings, &options, &service);
+        }
         Ok(Arc::new(Self {
             store: Mutex::new(Store {
                 docs: Vec::new(),
@@ -238,7 +261,46 @@ impl Workbench {
             assets: assets.to_owned(),
             profiles: profile_path,
             settings,
+            credentials,
+            zotero: crate::zotero::ZoteroManager::new(data),
         }))
+    }
+
+    pub(crate) fn zotero_storage_dir(&self) -> Option<String> {
+        self.lock().options.zotero_storage_dir.clone()
+    }
+
+    pub(crate) fn current_options(&self) -> Options {
+        self.lock().options.clone()
+    }
+
+    pub(crate) fn current_service_and_options(&self) -> (Service, Options) {
+        let store = self.lock();
+        (store.service.clone(), store.options.clone())
+    }
+
+    pub(crate) async fn import_local_file(
+        &self,
+        src: &Path,
+        file_name: &str,
+    ) -> Result<Value, ApiError> {
+        ensure_idle(&self.lock())?;
+        let name = cleaned_name(file_name);
+        let directory = tempfile::tempdir_in(self.scratch.path()).map_err(|_| ApiError::disk())?;
+        let original = directory.path().join("original.pdf");
+        tokio::fs::copy(src, &original)
+            .await
+            .map_err(|_| ApiError::disk())?;
+        validate_pdf(original.clone()).await?;
+        let mut store = self.lock();
+        ensure_idle(&store)?;
+        Ok(add_document(
+            &mut store,
+            name,
+            Source::File,
+            original,
+            directory,
+        ))
     }
 
     fn lock(&self) -> MutexGuard<'_, Store> {
@@ -248,6 +310,7 @@ impl Workbench {
     }
 
     pub(crate) fn shutdown(&self) {
+        self.zotero.shutdown();
         let store = self.lock();
         if let Some(job) = &store.job {
             job.flag.store(true, Ordering::Relaxed);
@@ -259,19 +322,19 @@ impl Workbench {
 }
 
 #[derive(Debug)]
-struct ApiError(StatusCode, String);
+pub(crate) struct ApiError(StatusCode, String);
 
 impl ApiError {
-    fn bad(message: impl Into<String>) -> Self {
+    pub(crate) fn bad(message: impl Into<String>) -> Self {
         Self(StatusCode::BAD_REQUEST, message.into())
     }
     fn busy() -> Self {
         Self(StatusCode::CONFLICT, "Wait for the current task to finish.".into())
     }
-    fn missing() -> Self {
+    pub(crate) fn missing() -> Self {
         Self(StatusCode::NOT_FOUND, "Could not find this file.".into())
     }
-    fn disk() -> Self {
+    pub(crate) fn disk() -> Self {
         Self(
             StatusCode::INTERNAL_SERVER_ERROR,
             "Could not read or write a local file.".into(),
@@ -298,9 +361,41 @@ pub(crate) fn router(state: Arc<Workbench>, web: PathBuf, host: String) -> Route
         .route("/api/profiles/test", post(test_profile))
         .route("/api/profiles/{name}", delete(delete_profile))
         .route("/api/service", post(select_service))
+        .route("/api/service/check", post(check_service))
         .route("/api/settings", post(save_settings))
         .route("/api/files/{id}/{kind}", get(pdf_file))
         .route("/api/archives/{kind}", get(archive_file))
+        .route("/api/zotero/library", get(crate::zotero::library_list))
+        .route("/api/zotero/pending", get(crate::zotero::pending_open))
+        .route("/api/zotero/open", post(crate::zotero::open_from_bridge))
+        .route(
+            "/api/zotero/doc/{key}",
+            get(crate::zotero::get_doc)
+                .post(crate::zotero::save_extracted)
+                .delete(crate::zotero::delete_doc),
+        )
+        .route("/api/zotero/pdf/{key}", get(crate::zotero::serve_pdf))
+        .route("/api/zotero/translate/{key}", post(crate::zotero::start_translate))
+        .route("/api/zotero/cancel/{key}", post(crate::zotero::cancel_translate))
+        .route("/api/zotero/reveal", post(crate::zotero::reveal_folder))
+        .route("/api/zotero/export/{key}", post(crate::zotero::export_markdown))
+        .route("/api/zotero/glossary/{key}", get(crate::zotero::get_glossary).post(crate::zotero::recover_glossary))
+        .route("/api/zotero/glossary/{key}/export", get(crate::zotero::export_glossary))
+        .route(
+            "/api/zotero/annotations/{key}",
+            post(crate::zotero::upsert_annotation),
+        )
+        .route(
+            "/api/zotero/annotations/{key}/{ann_id}",
+            delete(crate::zotero::delete_annotation),
+        )
+        .route(
+            "/api/zotero/import-to-workspace/{key}",
+            post(crate::zotero::send_to_workspace),
+        )
+        .route("/api/zotero/plugin-status", get(crate::zotero::plugin_status))
+        .route("/api/zotero/plugin-install", post(crate::zotero::plugin_install))
+        .route("/api/zotero/plugin-uninstall", post(crate::zotero::plugin_uninstall))
         .with_state(state)
         .fallback_service(ServeDir::new(web).append_index_html_on_directories(true))
         .layer(middleware::from_fn(move |request, next| {
@@ -332,6 +427,7 @@ async fn guard(request: Request, next: Next, host: String) -> Response {
 
 async fn state_response(State(app): State<Arc<Workbench>>) -> Result<Json<Value>, ApiError> {
     let profiles = profiles::load(&app.profiles).map_err(ApiError::bad)?;
+    let saved_keys = profiles::key_locations(&app.credentials).unwrap_or_default();
     let store = app.lock();
     let documents: Vec<_> = store.docs.iter().map(Document::public).collect();
     let archives: BTreeMap<_, _> = store
@@ -343,7 +439,7 @@ async fn state_response(State(app): State<Arc<Workbench>>) -> Result<Json<Value>
     let job = store.job.as_ref().map(|job| &job.info);
     let service = store.service.describe();
     Ok(Json(json!({
-        "documents":documents, "profiles":profiles, "service":service,
+        "documents":documents, "profiles":profiles, "saved_keys":saved_keys, "service":service,
         "active_service":service["name"], "job":job, "archives":archives,
         "settings":store.options, "importing":store.import.is_some(),
     })))
@@ -523,6 +619,7 @@ fn add_document(
         status: "ready",
         result: None,
         retained_paragraphs: 0,
+        glossary_failed: false,
         _directory: directory,
     };
     let public = document.public();
@@ -694,9 +791,9 @@ fn run_job(
                     }
                 }
             },
-            |texts, terms| {
+            |texts| {
                 handle
-                    .block_on(translator.batch(texts, terms, options, flag))
+                    .block_on(translator.batch(texts, &[], options, flag))
                     .map(|values| {
                         values
                             .into_iter()
@@ -706,7 +803,7 @@ fn run_job(
             },
             |prompt| handle.block_on(translator.extract_terms(prompt, options, flag)),
         );
-        let (files, retained_paragraphs) = result?;
+        let (files, retained_paragraphs, glossary_failed) = result?;
         let mut store = app.lock();
         if flag.load(Ordering::Relaxed) {
             return Ok(());
@@ -718,6 +815,7 @@ fn run_job(
                 _directory: output,
             }));
             doc.retained_paragraphs = retained_paragraphs;
+            doc.glossary_failed = glossary_failed;
             doc.status = "done";
         }
         if let Some(job) = &mut store.job {
@@ -824,8 +922,15 @@ async fn save_profile(
     State(app): State<Arc<Workbench>>,
     Json(profile): Json<ProfileRequest>,
 ) -> Result<Json<Value>, ApiError> {
-    let name = profiles::save(&app.profiles, &profile.name, &profile.url, &profile.model)
+    let (name, url, model) = profiles::validate(&profile.name, &profile.url, &profile.model)
         .map_err(ApiError::bad)?;
+    let current = app.lock();
+    if !profile.key.trim().is_empty() {
+        let key = profiles::validate_api_key(&url, &profile.key).map_err(ApiError::bad)?;
+        profiles::save_key(&app.credentials, &name, &url, &key).map_err(ApiError::bad)?;
+    }
+    profiles::save(&app.profiles, &name, &url, &model).map_err(ApiError::bad)?;
+    drop(current);
     Ok(Json(json!({"name":name})))
 }
 
@@ -837,53 +942,108 @@ async fn delete_profile(
     Ok(StatusCode::NO_CONTENT)
 }
 
-async fn test_profile(Json(profile): Json<ProfileRequest>) -> Result<Json<Value>, ApiError> {
-    let message = network::test_provider(&profile.url, &profile.model, &profile.key)
+async fn test_profile(
+    State(app): State<Arc<Workbench>>,
+    Json(profile): Json<ProfileRequest>,
+) -> Result<Json<Value>, ApiError> {
+    let service = configured_service(&app, profile)?;
+    let Service::Custom { base_url, model, key, .. } = service else {
+        return Err(ApiError::bad("Select a custom service."));
+    };
+    let message = network::test_provider(&base_url, &model, &key)
         .await
         .map_err(ApiError::bad)?;
     Ok(Json(json!({"message":message})))
 }
 
+fn configured_service(app: &Workbench, mut profile: ProfileRequest) -> Result<Service, ApiError> {
+    if profile.url.is_empty() && profile.model.is_empty() {
+        if let Some(saved) = profiles::load(&app.profiles)
+            .map_err(ApiError::bad)?
+            .remove(&profile.name)
+        {
+            profile.url = saved.base_url;
+            profile.model = saved.model;
+        }
+    }
+    let name = if profile.name.trim().is_empty() { "OpenAI-compatible" } else { &profile.name };
+    let (name, base_url, model) =
+        profiles::validate(name, &profile.url, &profile.model).map_err(ApiError::bad)?;
+    let mut key = profile.key;
+    if key.trim().is_empty() {
+        key = profiles::key_for(&app.credentials, &name, &base_url)
+            .map_err(ApiError::bad)?
+            .unwrap_or_default();
+        if key.is_empty() {
+            if let Service::Custom { name: active, base_url: url, key: legacy, .. } = &app.lock().service {
+                if active == &name && url == &base_url {
+                    key = legacy.clone();
+                }
+            }
+        }
+    }
+    let key = profiles::validate_api_key(&base_url, &key).map_err(ApiError::bad)?;
+    Ok(Service::Custom { name, base_url, model, key })
+}
+
+async fn check_service(State(app): State<Arc<Workbench>>) -> Json<Value> {
+    let (service, mut options) = app.current_service_and_options();
+    options.json_mode = false;
+    let result = match &service {
+        Service::Custom { base_url, model, key, .. } => network::test_provider(base_url, model, key).await,
+        Service::SiliconFlowFree => match Translator::new(service.clone()) {
+            Ok(translator) => tokio::time::timeout(
+                std::time::Duration::from_secs(15),
+                translator.extract_terms("Reply with OK.", &options, &AtomicBool::new(false)),
+            ).await.unwrap_or_else(|_| Err("Connection timed out.".into())),
+            Err(error) => Err(error),
+        },
+    };
+    let current = app.lock().service == service;
+    Json(json!({ "current": current, "connected": result.is_ok(), "message": result.err() }))
+}
+
 async fn select_service(
     State(app): State<Arc<Workbench>>,
-    Json(mut profile): Json<ProfileRequest>,
+    Json(profile): Json<ProfileRequest>,
 ) -> Result<Json<Value>, ApiError> {
     let service = if profile.name == "SiliconFlowFree" {
         Service::SiliconFlowFree
     } else {
-        if profile.url.is_empty() && profile.model.is_empty() {
-            if let Some(saved) = profiles::load(&app.profiles)
-                .map_err(ApiError::bad)?
-                .remove(&profile.name)
-            {
-                profile.url = saved.base_url;
-                profile.model = saved.model;
-            }
-        }
-        let name = if profile.name.trim().is_empty() {
-            "OpenAI-compatible"
-        } else {
-            &profile.name
-        };
-        let (name, base_url, model) =
-            profiles::validate(name, &profile.url, &profile.model).map_err(ApiError::bad)?;
-        let key = profiles::validate_api_key(&base_url, &profile.key).map_err(ApiError::bad)?;
-        Service::Custom {
-            name,
-            base_url,
-            model,
-            key,
-        }
+        configured_service(&app, profile)?
     };
     let mut store = app.lock();
     ensure_idle(&store)?;
+    if let Service::Custom { name, base_url, key, .. } = &service {
+        if !key.is_empty() {
+            profiles::save_key(&app.credentials, name, base_url, key).map_err(ApiError::bad)?;
+        }
+    }
+    persist_preferences(&app.settings, &store.options, &service)?;
     let description = service.describe();
     store.service = service;
     Ok(Json(description))
 }
 
+fn persist_preferences(path: &Path, options: &Options, service: &Service) -> Result<(), ApiError> {
+    let saved = Preferences {
+        schema: 1,
+        options: options.clone(),
+        service: service.clone(),
+    };
+    let parent = path.parent().ok_or_else(ApiError::disk)?;
+    fs::create_dir_all(parent).map_err(|_| ApiError::disk())?;
+    let mut pending = tempfile::NamedTempFile::new_in(parent).map_err(|_| ApiError::disk())?;
+    serde_json::to_writer_pretty(&mut pending, &saved).map_err(|_| ApiError::disk())?;
+    pending.as_file().sync_all().map_err(|_| ApiError::disk())?;
+    pending.persist(path).map_err(|_| ApiError::disk())?;
+    Ok(())
+}
+
 #[derive(Serialize, Deserialize)]
 struct Preferences {
+    #[serde(default)]
+    schema: u32,
     options: Options,
     #[serde(default)]
     service: Service,
@@ -965,7 +1125,7 @@ fn previous_settings(path: &Path, profile_path: &Path) -> Option<Preferences> {
     } else {
         Service::SiliconFlowFree
     };
-    Some(Preferences { options, service })
+    Some(Preferences { schema: 0, options, service })
 }
 
 async fn save_settings(
@@ -975,17 +1135,12 @@ async fn save_settings(
     let options = options.validate()?;
     let mut store = app.lock();
     ensure_idle(&store)?;
-    let saved = Preferences {
-        options: options.clone(),
-        service: store.service.clone(),
-    };
-    let parent = app.settings.parent().ok_or_else(ApiError::disk)?;
-    let mut pending = tempfile::NamedTempFile::new_in(parent).map_err(|_| ApiError::disk())?;
-    serde_json::to_writer_pretty(&mut pending, &saved).map_err(|_| ApiError::disk())?;
-    pending.as_file().sync_all().map_err(|_| ApiError::disk())?;
-    pending
-        .persist(&app.settings)
-        .map_err(|_| ApiError::disk())?;
+    if let Service::Custom { name, base_url, key, .. } = &store.service {
+        if !key.is_empty() {
+            profiles::save_key(&app.credentials, name, base_url, key).map_err(ApiError::bad)?;
+        }
+    }
+    persist_preferences(&app.settings, &options, &store.service)?;
     store.options = options;
     Ok(Json(json!({"message":"Settings saved."})))
 }
@@ -1071,4 +1226,40 @@ async fn file_response(
         }
     }
     Ok(response)
+}
+
+#[cfg(test)]
+mod credential_tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn upgrades_legacy_credentials_without_exposing_them_and_preserves_opt_out() {
+        let data = tempfile::tempdir().unwrap();
+        let settings = data.path().join("settings.json");
+        fs::write(&settings, json!({
+            "options": { "glossary": false },
+            "service": { "Custom": { "name": "GLM", "base_url": "https://example.com/v1",
+                "model": "glm-4.7", "key": "fixture-secret" } }
+        }).to_string()).unwrap();
+
+        let app = Workbench::new(data.path(), data.path(), None, None).unwrap();
+        let (service, mut options) = app.current_service_and_options();
+        assert!(options.glossary);
+        assert!(!fs::read_to_string(&settings).unwrap().contains("fixture-secret"));
+        let credentials = data.path().join("service_credentials.json");
+        assert_eq!(fs::metadata(&credentials).unwrap().permissions().mode() & 0o777, 0o600);
+        assert_eq!(profiles::key_for(&credentials, "GLM", "https://example.com/v1").unwrap().as_deref(),
+            Some("fixture-secret"));
+        assert!(profiles::key_for(&credentials, "GLM", "https://other.example/v1").unwrap().is_none());
+        options.glossary = false;
+        persist_preferences(&settings, &options, &service).unwrap();
+        drop(app);
+
+        let reopened = Workbench::new(data.path(), data.path(), None, None).unwrap();
+        let (reopened_service, reopened_options) = reopened.current_service_and_options();
+        assert_eq!(reopened_service.describe()["has_key"], true);
+        assert!(reopened_service == service);
+        assert!(!reopened_options.glossary);
+    }
 }

@@ -8,6 +8,7 @@ mod profiles;
 mod runtime;
 mod translate;
 mod workbench;
+mod zotero;
 
 use std::error::Error;
 use std::io;

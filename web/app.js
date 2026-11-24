@@ -1,5 +1,6 @@
 import { PdfPreview } from "/preview.js";
 import { createInlineSelect } from "/inline-select.js";
+import { initZoteroModule } from "/zotero.js";
 
 const byId = (id) => document.getElementById(id);
 const setText = (element, value) => {
@@ -38,15 +39,16 @@ const downloadButton = byId("workspace-download-button");
 const downloads = byId("workspace-downloads");
 
 const languageOptions = [
-  ["auto", "Auto-detect"], ["en", "English"], ["zh-CN", "Simplified Chinese"], ["zh-TW", "Traditional Chinese (Taiwan)"],
-  ["zh-HK", "Traditional Chinese (Hong Kong)"], ["ja", "Japanese"], ["ko", "Korean"], ["fr", "French"], ["de", "German"],
-  ["es", "Spanish"], ["ru", "Russian"], ["it", "Italian"], ["pt", "Portuguese"], ["ar", "Arabic"],
-  ["hi", "Hindi"], ["id", "Indonesian"], ["nl", "Dutch"], ["sv", "Swedish"], ["th", "Thai"],
-  ["tr", "Turkish"], ["uk", "Ukrainian"], ["vi", "Vietnamese"]
+  ["auto", "自动检测"], ["en", "English"], ["zh-CN", "简体中文"], ["zh-TW", "繁體中文（台灣）"],
+  ["zh-HK", "繁體中文（香港）"], ["ja", "日文"], ["ko", "한국어"], ["fr", "Français"], ["de", "Deutsch"],
+  ["es", "Español"], ["ru", "Русский"], ["it", "Italiano"], ["pt", "Português"], ["ar", "العربية"],
+  ["hi", "हिन्दी"], ["id", "Bahasa Indonesia"], ["nl", "Nederlands"], ["sv", "Svenska"], ["th", "ไทย"],
+  ["tr", "Türkçe"], ["uk", "Українська"], ["vi", "Tiếng Việt"]
 ];
 const standardService = "SiliconFlowFree";
 const standardLabel = "SiliconFlow Free";
 const servicePresets = new Map([
+  ["glm47", { name: "智谱 · GLM-4.7", legacyName: "智谱 · GLM-4.7（免费 API）", url: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4.7" }],
   ["openai", { name: "OpenAI · GPT-6 Luna", url: "https://api.openai.com/v1", model: "gpt-6-luna" }],
   ["deepseek", { name: "DeepSeek · Flash", url: "https://api.deepseek.com", model: "deepseek-flash" }],
   ["gemini", {
@@ -95,7 +97,7 @@ let snapshot = { documents: [], profiles: {} };
 let options = {
   from: "en", to: "zh-CN", pages: "", format: "both",
   translated_only: false, translated_first: false, alternate: false, prompt: "", json_mode: false,
-  glossary: false, min_text_length: 5, font_family: "",
+  glossary: true, min_text_length: 5, font_family: "", zotero_storage_dir: "",
 };
 let source = "file";
 let chosen = { file: null, link: null };
@@ -137,9 +139,10 @@ const viewer = new PdfPreview({
   pageTotal: byId("preview-page-total"),
 });
 
-function status(element, text, isError = false) {
+function status(element, text, isError = false, isSuccess = false) {
   setText(element, text);
   element.toggleAttribute("data-error", Boolean(isError && text));
+  element.toggleAttribute("data-success", Boolean(isSuccess && !isError && text));
 }
 
 function optionsFor(select, entries, value) {
@@ -287,7 +290,10 @@ function jobPresentation(available) {
   if (["failed", "error"].includes(job?.status)) return [job.error || job.message || "Translation failed", "error"];
   if (["canceled", "cancelled"].includes(job?.status)) return [job.message || canceledLabel, "neutral"];
   const retained = available.reduce((count, doc) => count + (doc.retained_paragraphs ?? 0), 0);
-  if (retained) return [`Exported with original text in ${retainedParagraphsLabel(retained)}.`, "warning"];
+  const warnings = [];
+  if (retained) warnings.push(`Exported with original text in ${retainedParagraphsLabel(retained)}.`);
+  if (available.some((doc) => doc.glossary_failed)) warnings.push("部分术语表提取失败，PDF 可正常下载。");
+  if (warnings.length) return [warnings.join(" "), "warning"];
   if (available.length && finished.has(job?.status)) return ["Translation complete", "success"];
   return ["", ""];
 }
@@ -306,7 +312,7 @@ function renderWorkspace() {
   linkForm.hidden = source !== "link";
   byId("pick-files").disabled = locked;
   byId("workspace-preview-empty").disabled = locked;
-  setText(byId("preview-empty-label"), source === "link" ? "Paste a PDF link" : "Choose PDF");
+  setText(byId("preview-empty-label"), source === "link" ? "粘贴 PDF 链接" : "选择 PDF");
   byId("preview-drop-hint").hidden = source === "link";
   linkInput.disabled = locked;
   updateLinkImport();
@@ -335,8 +341,8 @@ function renderWorkspace() {
 
   const translate = byId("workspace-translate");
   translate.disabled = locked || !docs.length;
-  const translateLabel = docs.length > 1 ? `Translate ${docs.length} PDFs` : "Translate";
-  setText(translate, translating ? "Translating…" : docs.length ? translateLabel : "Add a PDF");
+  const translateLabel = docs.length > 1 ? `开始翻译 (${docs.length} 份 PDF)` : "开始翻译";
+  setText(translate, translating ? "正在翻译…" : docs.length ? translateLabel : "添加 PDF");
   byId("workspace-cancel").hidden = !translating && !importing;
   byId("workspace-cancel").disabled = cancelingImport || ["canceling", "cancelling"].includes(snapshot.job?.status)
     || Boolean(stagedAction && !importing);
@@ -381,14 +387,55 @@ function activeProvider() {
   return "custom";
 }
 
+let connectionState = "unknown";
+let connectionMessage = "";
+let connectionSequence = 0;
+
+function syncServiceDot() {
+  const pill = byId("active-service");
+  const label = byId("workspace-active-service").textContent;
+  const states = {
+    unknown: "尚未检查",
+    checking: "正在检查连接",
+    online: "连接正常",
+    offline: "连接失败",
+  };
+  pill.dataset.connection = connectionState;
+  pill.title = [label, states[connectionState], connectionMessage].filter(Boolean).join(" · ");
+  pill.setAttribute("aria-label", pill.title);
+}
+
+async function checkActiveService() {
+  const sequence = ++connectionSequence;
+  if (!snapshot.service) return;
+  if (connectionState !== "online") connectionState = "checking";
+  connectionMessage = "";
+  syncServiceDot();
+  try {
+    const result = await api("/api/service/check", { method: "POST" });
+    if (sequence !== connectionSequence || !result.current) return;
+    connectionState = result.connected ? "online" : "offline";
+    connectionMessage = result.message || "";
+    return result;
+  } catch (error) {
+    if (sequence !== connectionSequence) return;
+    connectionState = "offline";
+    connectionMessage = error.message;
+  } finally {
+    if (sequence === connectionSequence) syncServiceDot();
+  }
+}
+
+window.addEventListener("online", checkActiveService);
+
 function renderService() {
   const service = snapshot.service || {};
   const name = snapshot.active_service || service.name || standardService;
   const active = activeProvider();
   const activeLabel = active === standardService ? standardLabel : servicePresets.get(active)?.name ?? name;
   setText(byId("workspace-active-service"), activeLabel);
-  byId("active-service").title = activeLabel;
   setText(byId("settings-active-service"), activeLabel);
+  syncServiceDot();
   settingsProvider.value = selectedProvider;
   settingsProvider.disabled = profilePending;
 
@@ -397,11 +444,15 @@ function renderService() {
   setText(profileHeading, preset?.name ?? "Custom service");
   for (const section of customProfileSections) section.hidden = usePreset;
   profileName.disabled = profileModel.disabled = profileUrl.disabled = usePreset;
-  profileKey.required = usePreset;
+  const form = profileFormValues();
+  const url = form.url.replace(/\/+$/, "").replace(/\/chat\/completions$/, "").replace(/\/+$/, "");
+  const hasSavedKey = Boolean(snapshot.saved_keys?.[form.name]?.includes(url)
+    || (service.has_key && form.name === name && service.base_url === url));
+  profileKey.required = usePreset && !hasSavedKey;
   profileKey.disabled = profilePending;
-  profileKey.placeholder = usePreset && service.has_key && active === selectedProvider
-    ? "Enter a replacement key"
-    : usePreset ? "" : "Optional for localhost";
+  profileKey.placeholder = hasSavedKey
+    ? "已保存 API Key（留空即沿用，无需重填）"
+    : usePreset ? "请输入 API Key" : "本地服务可留空";
 
   const profiles = snapshot.profiles || {};
   if (!(activeProfile && Object.hasOwn(profiles, activeProfile))) activeProfile = "";
@@ -447,6 +498,7 @@ async function refresh({ initialize = false } = {}) {
   const data = await api("/api/state");
   if (sequence < appliedSequence) return;
   appliedSequence = sequence;
+  const previousService = JSON.stringify(snapshot.service);
   const previous = new Map(snapshot.documents.map((doc) => [doc.id, doc.versions]));
   snapshot = { ...data, documents: data.documents || [], profiles: data.profiles || {} };
   for (const doc of snapshot.documents) {
@@ -470,6 +522,10 @@ async function refresh({ initialize = false } = {}) {
   renderService();
   renderWorkspace();
   scheduleRefresh();
+  if (previousService !== JSON.stringify(snapshot.service)) {
+    connectionState = "unknown";
+    checkActiveService();
+  }
 }
 
 async function performWorkspace(label, activity) {
@@ -528,24 +584,41 @@ function addFiles(files) {
 
 function jobOptions() {
   const { pages, ...rest } = options;
-  if (rest.from !== "auto" && rest.from === rest.to) throw new Error("Choose different source and target languages.");
+  if (rest.from !== "auto" && rest.from === rest.to) throw new Error("源语言和目标语言不能相同。");
   const minLength = Number(rest.min_text_length);
-  if (!Number.isSafeInteger(minLength) || minLength < 0) throw new Error("Minimum text length must be a whole number of 0 or more.");
-  return { ...rest, pages: pages.trim(), min_text_length: minLength,
-    font_family: rest.font_family.trim() || null };
+  if (!Number.isSafeInteger(minLength) || minLength < 0) throw new Error("最小文本长度必须为大于等于 0 的整数。");
+  return { ...rest, pages: (pages || "").trim(), min_text_length: minLength,
+    font_family: (rest.font_family || "").trim() || null,
+    zotero_storage_dir: (rest.zotero_storage_dir || "").trim() || null };
+}
+
+function syncDependentOutputControls() {
+  const monoOnly = options.format === "mono";
+  for (const key of ["translated_first", "alternate"]) {
+    for (const el of document.querySelectorAll(`[data-setting="${key}"]`)) {
+      el.disabled = monoOnly;
+      el.closest("label")?.toggleAttribute("data-disabled", monoOnly);
+    }
+  }
+  const allPages = !(options.pages || "").trim();
+  for (const el of document.querySelectorAll(`[data-setting="translated_only"]`)) {
+    el.disabled = allPages;
+    el.closest("label")?.toggleAttribute("data-disabled", allPages);
+  }
 }
 
 function setSetting(key, value) {
-  options[key] = value;
+  options[key] = value ?? "";
   for (const control of document.querySelectorAll(`[data-setting="${key}"]`)) {
     if (control.type === "checkbox") control.checked = Boolean(value);
-    else if (control.value !== String(value)) control.value = value;
+    else if (control.value !== String(value ?? "")) control.value = value ?? "";
     inlineSelects.get(control)?.sync();
   }
   if (key === "from") {
     languageSwap.disabled = value === "auto";
-    languageSwap.title = languageSwap.disabled ? "Choose a source language to swap" : "Swap languages";
+    languageSwap.title = languageSwap.disabled ? "请先选择源语言后再互换" : "互换语言";
   }
+  if (key === "format" || key === "pages") syncDependentOutputControls();
 }
 
 function syncLanguageSelects() {
@@ -558,12 +631,14 @@ function syncLanguageSelects() {
 
 function restoreSettings(data) {
   for (const key of ["from", "to", "translated_only", "translated_first", "alternate", "prompt", "json_mode",
-    "glossary", "min_text_length", "font_family"]) {
-    setSetting(key, data[key] ?? options[key]);
+    "glossary", "min_text_length", "font_family", "zotero_storage_dir"]) {
+    const incoming = data[key];
+    setSetting(key, incoming === undefined || incoming === null ? (key === "font_family" || key === "zotero_storage_dir" ? "" : options[key]) : incoming);
   }
   setSetting("format", knownFormats.includes(data.format) ? data.format : options.format);
   setSetting("pages", typeof data.pages === "string" ? data.pages : "");
   syncLanguageSelects();
+  syncDependentOutputControls();
 }
 
 function configureTabs(list, onChoose = () => {}) {
@@ -701,8 +776,10 @@ function profileFormValues() {
   const preset = servicePresets.get(selectedProvider);
   const key = profileKey.value.trim();
   if (preset) {
-    const { name, url, model } = preset;
-    return { name, url, model, key };
+    const { name, legacyName, url, model } = preset;
+    const useLegacy = legacyName && (snapshot.saved_keys?.[legacyName]?.includes(url)
+      || (snapshot.service?.name === legacyName && snapshot.service.base_url === url));
+    return { name: useLegacy ? legacyName : name, url, model, key };
   }
   return {
     name: profileName.value.trim(),
@@ -712,16 +789,16 @@ function profileFormValues() {
   };
 }
 
-async function manageProfile(planned, action, feedback = profileStatus) {
+async function manageProfile(planned, action, feedback = profileStatus, markSuccess = false) {
   if (profilePending) return;
   profilePending = true;
   status(feedback, planned);
   renderService();
   try {
     const message = await action();
-    status(feedback, message);
+    status(feedback, message, false, markSuccess);
   } catch (error) {
-    status(feedback, error.message, true);
+    status(feedback, error.message, true, false);
   } finally {
     profilePending = false;
     renderService();
@@ -748,39 +825,48 @@ function setSecretVisibility(visible) {
 }
 
 byId("profile-key-toggle").addEventListener("click", () => setSecretVisibility(profileKey.type === "password"));
-profileSave.addEventListener("click", () => manageProfile("Saving…", async () => {
-  const { name, url, model } = profileFormValues();
-  await api("/api/profiles", { method: "POST", json: { name, url, model } });
+profileSave.addEventListener("click", () => manageProfile("正在保存…", async () => {
+  const { name, url, model, key } = profileFormValues();
+  await api("/api/profiles", { method: "POST", json: { name, url, model, key } });
   activeProfile = name;
   await refresh();
-  return "Profile saved without the API key.";
+  return "配置已保存";
 }));
-profileDelete.addEventListener("click", () => manageProfile("Deleting…", async () => {
+profileDelete.addEventListener("click", () => manageProfile("正在删除…", async () => {
   if (!activeProfile) return "";
   await api(`/api/profiles/${encodeURIComponent(activeProfile)}`, { method: "DELETE" });
   activeProfile = "";
   profileName.value = profileUrl.value = profileModel.value = profileKey.value = "";
   setSecretVisibility(false);
   await refresh();
-  return "Profile deleted";
+  return "配置已删除";
 }));
 profileTest.addEventListener("click", () => {
   if (profileKey.required && !profileKey.reportValidity()) return;
-  manageProfile("Testing connection…", async () => {
-    const { url, model, key } = profileFormValues();
-    const response = await api("/api/profiles/test", { method: "POST", json: { url, model, key } });
-    return typeof response === "string" ? response : response?.message || "Connection successful";
-  });
+  const { name, url, model, key } = profileFormValues();
+  manageProfile("正在测试连接…", async () => {
+    const active = snapshot.service;
+    if (!key && active?.name === name && active.base_url === url && active.model === model) {
+      const result = await checkActiveService();
+      if (!result?.connected) throw new Error(result?.message || "连接失败");
+      return "● Connection successful.";
+    }
+    const response = await api("/api/profiles/test", { method: "POST", json: { name, url, model, key } });
+    const message = typeof response === "string" ? response : response?.message || "连接成功";
+    return `● ${message}`;
+  }, profileStatus, true);
 });
 byId("profile-form").addEventListener("submit", (event) => {
   event.preventDefault();
-  manageProfile("Applying…", async () => {
+  manageProfile("正在应用…", async () => {
     const preset = servicePresets.has(selectedProvider);
     await api("/api/service", { method: "POST", json: profileFormValues() });
     if (!preset) selectedProvider = "custom";
     setSecretVisibility(false);
+    const sequence = connectionSequence;
     await refresh();
-    return preset ? "Service applied. Save settings to keep it after restart." : "Service applied";
+    if (sequence === connectionSequence) checkActiveService();
+    return "服务已应用并自动保存";
   });
 });
 settingsProvider.addEventListener("change", () => {
@@ -794,7 +880,7 @@ settingsProvider.addEventListener("change", () => {
     (servicePresets.has(selectedProvider) ? profileKey : profileName).focus();
     return;
   }
-  manageProfile("Applying…", async () => {
+  manageProfile("正在应用…", async () => {
     try {
       await api("/api/service", { method: "POST", json: { name: standardService } });
     } catch (error) {
@@ -802,7 +888,7 @@ settingsProvider.addEventListener("change", () => {
       throw error;
     }
     await refresh();
-    return "Service applied";
+    return "已切换为 SiliconFlow Free 并保存";
   }, settingsStatus);
 });
 
@@ -825,10 +911,11 @@ byId("settings-save").addEventListener("click", async (event) => {
   if (settingsPending) return;
   const button = event.currentTarget;
   settingsPending = button.disabled = true;
-  status(settingsStatus, "Saving…");
+  status(settingsStatus, "正在保存…");
   try {
     await api("/api/settings", { method: "POST", json: jobOptions() });
-    status(settingsStatus, "Settings saved");
+    status(settingsStatus, "设置已保存");
+    zoteroModule?.refreshLibrary();
   } catch (error) {
     status(settingsStatus, error.message, true);
   } finally {
@@ -936,3 +1023,14 @@ refresh({ initialize: true }).catch((error) => {
   workspaceError = true;
   renderWorkspace();
 });
+
+const zoteroModule = initZoteroModule({
+  onSwitchToZoteroTab: () => chooseTop(byId("zotero-tab")),
+  onOpenInWorkspace: async () => {
+    chooseTop(byId("workspace-tab"));
+    switchSource("file");
+    await refresh();
+  },
+});
+byId("zotero-tab").addEventListener("click", () => zoteroModule.refreshLibrary());
+zoteroModule.refreshLibrary();

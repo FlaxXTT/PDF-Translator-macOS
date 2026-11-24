@@ -95,6 +95,7 @@ pub(crate) struct Backend {
     stop: Option<oneshot::Sender<()>>,
     ready: Arc<AtomicBool>,
     url: String,
+    bridge_path: PathBuf,
 }
 
 impl Backend {
@@ -126,6 +127,15 @@ impl Backend {
             tokio::net::TcpListener::from_std(listener)?
         };
         fs::write(&paths.log, format!("Rust 工作台 {url}\n"))?;
+        let bridge_path = paths.data.join("bridge.json");
+        let _ = fs::write(
+            &bridge_path,
+            serde_json::json!({
+                "url": url,
+                "pid": std::process::id(),
+            })
+            .to_string(),
+        );
         let (stop, shutting_down) = oneshot::channel();
         let ready = Arc::new(AtomicBool::new(false));
         let started = ready.clone();
@@ -148,6 +158,7 @@ impl Backend {
             stop: Some(stop),
             ready,
             url,
+            bridge_path,
         };
         if browser && env::var_os("HERMENEUEIN_NO_OPEN").is_none() {
             let _ = Command::new("/usr/bin/open").arg(backend.url()).spawn();
@@ -173,6 +184,7 @@ impl Backend {
 
 impl Drop for Backend {
     fn drop(&mut self) {
+        let _ = fs::remove_file(&self.bridge_path);
         self.app.shutdown();
         if let Some(stop) = self.stop.take() {
             let _ = stop.send(());

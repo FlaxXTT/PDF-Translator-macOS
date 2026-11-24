@@ -1,0 +1,20 @@
+{
+  "manifest_version": 2,
+  "name": "PDF Translator Bridge for Zotero",
+  "version": "1.1.0",
+  "description": "Lightweight Zotero bridge that opens PDFs directly in PDF Translator for macOS for sentence-aligned bilingual reading and translation.",
+  "author": "PDF Translator",
+  "homepage_url": "https://github.com/FlaxXTT/PDF-Translator-macOS",
+  "icons": {
+    "48": "content/icons/icon.svg",
+    "96": "content/icons/icon.svg"
+  },
+  "applications": {
+    "zotero": {
+      "id": "pdf-translator@hermeneuein.app",
+      "update_url": "https://localhost/pdf-translator-zotero/updates.json",
+      "strict_min_version": "7.0",
+      "strict_max_version": "*"
+    }
+  }
+}

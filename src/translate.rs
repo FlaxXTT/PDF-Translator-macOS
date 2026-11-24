@@ -20,7 +20,7 @@ const ENDPOINTS: [&str; 2] = [
 ];
 const MAX_SPLIT_DEPTH: u8 = 3;
 
-#[derive(Clone, Default, Deserialize, Serialize)]
+#[derive(Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub(crate) enum Service {
     #[default]
     SiliconFlowFree,
@@ -28,6 +28,7 @@ pub(crate) enum Service {
         name: String,
         base_url: String,
         model: String,
+        #[serde(default, skip_serializing)]
         key: String,
     },
 }

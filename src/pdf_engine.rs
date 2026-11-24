@@ -157,9 +157,9 @@ pub fn run(
     opts: &PdfOptions,
     cancellation: &AtomicBool,
     progress: impl Fn(u8, &str) + Send + Sync,
-    mut translate: impl FnMut(&[String], &[(String, String)]) -> Result<Vec<(String, bool)>, String>,
+    mut translate: impl FnMut(&[String]) -> Result<Vec<(String, bool)>, String>,
     mut extract_terms: impl FnMut(&str) -> Result<String, String>,
-) -> Result<(PdfResult, usize), String> {
+) -> Result<(PdfResult, usize, bool), String> {
     let mut cancel = Cancel(cancellation);
     if !opts.mono && !opts.dual {
         return Err("Select at least one output format.".into());
@@ -194,7 +194,7 @@ pub fn run(
             opts,
             &cancel,
         )
-        .map(|result| (result, 0));
+        .map(|result| (result, 0, false));
     }
     let mut display_transforms = HashMap::new();
     for (index, page) in source.page_iter().enumerate() {
@@ -302,33 +302,17 @@ pub fn run(
                 opts,
                 &cancel,
             )
-            .map(|result| (result, 0));
+            .map(|result| (result, 0, false));
         }
         return Err("No translatable text was found. Convert scanned pages to a searchable PDF first.".into());
     }
     let mut translated_page_indices = BTreeSet::new();
-    let glossary = if opts.glossary {
-        paragraphs::extract_glossary(
-            &jobs,
-            &opts.lang_out,
-            &cancel,
-            &progress,
-            &mut extract_terms,
-        )?
-    } else {
-        None
-    };
     progress(35, "Translating text");
     let mut translated = 0;
     let mut retained_paragraphs = 0;
     for batch in jobs.chunks(12) {
         cancel.check()?;
         let texts = batch.iter().map(|job| job.text.clone()).collect::<Vec<_>>();
-        let terms = glossary
-            .as_ref()
-            .map(|glossary| glossary.active_entries_for_text(&texts.join("\n")))
-            .unwrap_or_default();
-        let mut translate = |texts: &[String]| translate(texts, &terms);
         let values = translate(&texts)?;
         if values.len() != batch.len() {
             return Err("The translation service returned a different number of paragraphs than requested.".into());
@@ -366,6 +350,24 @@ pub fn run(
         progress(35 + (40 * translated / jobs.len()) as u8, "Translating text");
     }
 
+    // Exporting a glossary is independent of the wording used for the PDF.
+    let (glossary, glossary_failed) = if opts.glossary {
+        match paragraphs::extract_glossary(
+            &jobs,
+            &opts.lang_out,
+            &cancel,
+            &|percent, message| progress(75 + (percent - 30) / 2, message),
+            &mut extract_terms,
+        ) {
+            Ok(glossary) => (glossary, false),
+            Err(_) => {
+                cancel.check()?;
+                (None, true)
+            }
+        }
+    } else {
+        (None, false)
+    };
     cancel.check()?;
     if translated_page_indices.is_empty() {
         progress(96, "Saving original text");
@@ -379,7 +381,7 @@ pub fn run(
             opts,
             &cancel,
         )
-        .map(|result| (result, retained_paragraphs));
+        .map(|result| (result, retained_paragraphs, glossary_failed));
     }
     progress(78, "Typesetting translation");
     let source_styles: HashMap<_, _> = source_styles.into_iter().collect();
@@ -493,7 +495,7 @@ pub fn run(
     output::save(
         input, output, source, mono, selected, glossary, opts, &cancel,
     )
-    .map(|result| (result, retained_paragraphs))
+    .map(|result| (result, retained_paragraphs, glossary_failed))
 }
 
 fn font_setup<'a>(catalog: &'a Value, lang: &str) -> (&'a Value, &'a Value) {

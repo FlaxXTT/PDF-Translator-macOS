@@ -6,6 +6,8 @@
 	<string>PDF Translator</string>
 	<key>CFBundleExecutable</key>
 	<string>PDFMathTranslate</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>local.codex.pdfmathtranslate</string>
 	<key>CFBundleName</key>
@@ -15,7 +17,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>2.10.2</string>
 	<key>CFBundleVersion</key>
-	<string>13</string>
+	<string>17</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>NSHighResolutionCapable</key>

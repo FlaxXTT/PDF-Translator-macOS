@@ -184,6 +184,28 @@ unsafe fn make_menu(app: Id) {
         send!(submenu.0, c"addItemWithTitle:action:keyEquivalent:" => Id,
             string(&format!("Quit {APP_NAME}")) => Id, sel_registerName(c"terminate:".as_ptr()) => Sel,
             string("q") => Id);
+
+        // Standard Edit menu so WKWebView supports Cmd+V/C/X/A/Z natively in all inputs
+        let edit_item = Owned(send!(class(c"NSMenuItem"), c"new" => Id));
+        let edit_menu = Owned(send!(
+            send!(class(c"NSMenu"), c"alloc" => Id),
+            c"initWithTitle:" => Id,
+            string("Edit") => Id
+        ));
+        send!(menu.0, c"addItem:" => (), edit_item.0 => Id);
+        send!(edit_item.0, c"setSubmenu:" => (), edit_menu.0 => Id);
+        for (title, action, key) in [
+            ("Undo", c"undo:", "z"),
+            ("Redo", c"redo:", "Z"),
+            ("Cut", c"cut:", "x"),
+            ("Copy", c"copy:", "c"),
+            ("Paste", c"paste:", "v"),
+            ("Select All", c"selectAll:", "a"),
+        ] {
+            send!(edit_menu.0, c"addItemWithTitle:action:keyEquivalent:" => Id,
+                string(title) => Id, sel_registerName(action.as_ptr()) => Sel, string(key) => Id);
+        }
+
         send!(app, c"setMainMenu:" => (), menu.0 => Id);
     }
 }
@@ -204,7 +226,7 @@ extern "C" fn did_finish_launching(delegate: Id, _: Sel, notification: Id) {
         send!(window.0, c"setTitle:" => (), string(APP_NAME) => Id);
         send!(window.0, c"setTitleVisibility:" => (), WINDOW_TITLE_HIDDEN => isize);
         send!(window.0, c"setTitlebarAppearsTransparent:" => (), objc_bool(true) => ObjcBool);
-        send!(window.0, c"setMinSize:" => (), Size { width: 560.0, height: 440.0 } => Size);
+        send!(window.0, c"setMinSize:" => (), Size { width: 920.0, height: 620.0 } => Size);
         send!(window.0, c"center" => ());
 
         let config = Owned(send!(class(c"WKWebViewConfiguration"), c"new" => Id));

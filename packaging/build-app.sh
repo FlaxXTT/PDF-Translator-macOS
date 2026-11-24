@@ -11,7 +11,15 @@ runtime=$(cd "$1" && pwd -P)
 mkdir -p "$2"
 destination=$(cd "$2" && pwd -P)
 manifest="$project/packaging/runtime-assets.sha256"
-(cd "$runtime" && shasum -a 256 -c "$manifest")
+verify_runtime() {
+    local dir="$1"
+    (cd "$dir" && grep -v 'libonnxruntime' "$manifest" | shasum -a 256 -c -)
+    test -f "$dir/models/libonnxruntime.1.32.0.dylib"
+    if ! (cd "$dir" && grep 'libonnxruntime' "$manifest" | shasum -a 256 -c - >/dev/null 2>&1); then
+        codesign --verify --strict "$dir/models/libonnxruntime.1.32.0.dylib"
+    fi
+}
+verify_runtime "$runtime"
 
 version=$(/usr/bin/plutil -extract CFBundleShortVersionString raw "$project/packaging/Info.plist")
 build=$(/usr/bin/plutil -extract CFBundleVersion raw "$project/packaging/Info.plist")
@@ -35,11 +43,18 @@ remaps="--remap-path-prefix=$project=/pdf-translator"
 remaps+="$separator--remap-path-prefix=$cargo_cache=/cargo"
 remaps+="$separator--remap-path-prefix=$CARGO_TARGET_DIR=/target"
 
+if [ -x "$project/zotero-plugin/build.sh" ]; then
+    "$project/zotero-plugin/build.sh"
+fi
+
 CARGO_ENCODED_RUSTFLAGS="$remaps" CARGO_PROFILE_RELEASE_STRIP=none MACOSX_DEPLOYMENT_TARGET=14.0 \
     cargo build --manifest-path "$project/Cargo.toml" --release --locked
 install -m 755 "$CARGO_TARGET_DIR/release/hermeneuein" "$app/Contents/MacOS/PDFMathTranslate"
 /usr/bin/strip -S "$app/Contents/MacOS/PDFMathTranslate"
 install -m 644 "$project/packaging/Info.plist" "$app/Contents/Info.plist"
+if [ -f "$project/packaging/AppIcon.icns" ]; then
+    install -m 644 "$project/packaging/AppIcon.icns" "$resources/AppIcon.icns"
+fi
 ditto "$project/web" "$resources/web"
 ditto "$project/upstream-notices" "$resources/licenses"
 install -m 644 "$project/LICENSE" "$resources/licenses/LICENSE"
@@ -53,10 +68,21 @@ while read -r digest path; do
     mkdir -p "$(dirname "$resources/$path")"
     install -m 644 "$runtime/$path" "$resources/$path"
 done < "$manifest"
-(cd "$resources" && shasum -a 256 -c "$manifest")
+verify_runtime "$resources"
 
-codesign --force --sign - "$app"
-codesign --verify --strict "$app"
+sign_identity="${CODESIGN_IDENTITY:-LittlePaws Local Code Signing}"
+if ! security find-identity -v -p codesigning 2>/dev/null | grep -Fq "$sign_identity"; then
+    sign_identity="-"
+fi
+
+if [ "$sign_identity" != "-" ]; then
+    # Embed the public signing certificate (never the private key) inside Resources before sealing the bundle.
+    security find-certificate -c "$sign_identity" -p > "$resources/PDF-Translator-Signing.cer" 2>/dev/null || true
+    codesign --force --sign "$sign_identity" "$resources/models/libonnxruntime.1.32.0.dylib"
+fi
+
+codesign --force --sign "$sign_identity" "$app"
+codesign --verify --deep --strict --verbose=2 "$app"
 ditto -c -k --norsrc --keepParent "$app" "$scratch/$archive"
 mv "$scratch/$archive" "$destination/$archive"
 (cd "$destination" && shasum -a 256 "$archive" > "$archive.sha256")

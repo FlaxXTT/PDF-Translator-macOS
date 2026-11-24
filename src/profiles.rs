@@ -20,6 +20,25 @@ pub(crate) struct Profile {
 }
 
 type Profiles = BTreeMap<String, Profile>;
+type Credentials = BTreeMap<String, BTreeMap<String, String>>;
+
+/// Credentials are stored outside the app bundle and isolated by profile and API URL.
+pub(crate) fn key_for(path: &Path, name: &str, url: &str) -> Result<Option<String>, String> {
+    let keys: Credentials = read_json(path)?;
+    Ok(keys.get(name).and_then(|endpoints| endpoints.get(url)).cloned())
+}
+
+pub(crate) fn key_locations(path: &Path) -> Result<BTreeMap<String, Vec<String>>, String> {
+    let keys: Credentials = read_json(path)?;
+    Ok(keys.into_iter().map(|(name, endpoints)| (name, endpoints.into_keys().collect())).collect())
+}
+
+pub(crate) fn save_key(path: &Path, name: &str, url: &str, key: &str) -> Result<(), String> {
+    edit_json(path, |keys: &mut Credentials| {
+        keys.entry(name.into()).or_default().insert(url.into(), key.into());
+        Ok(())
+    })
+}
 
 pub(crate) fn validate_endpoint(url: &str, model: &str) -> Result<(String, String), String> {
     let model = model.trim();
@@ -75,18 +94,22 @@ pub(crate) fn validate(
 }
 
 pub(crate) fn load(path: &Path) -> Result<Profiles, String> {
+    read_json(path)
+}
+
+fn read_json<T: serde::de::DeserializeOwned + Default>(path: &Path) -> Result<T, String> {
     match File::open(path) {
         Ok(file) => {
             serde_json::from_reader(io::BufReader::new(file)).map_err(|_| READ_ERROR.into())
         }
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(BTreeMap::new()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(T::default()),
         Err(_) => Err("Could not read the service configuration.".into()),
     }
 }
 
 pub(crate) fn save(path: &Path, name: &str, url: &str, model: &str) -> Result<String, String> {
     let (name, base_url, model) = validate(name, url, model)?;
-    edit_profiles(path, |profiles| {
+    edit_json(path, |profiles: &mut Profiles| {
         profiles.insert(name.clone(), Profile { base_url, model });
         Ok(())
     })?;
@@ -94,15 +117,15 @@ pub(crate) fn save(path: &Path, name: &str, url: &str, model: &str) -> Result<St
 }
 
 pub(crate) fn delete(path: &Path, name: &str) -> Result<(), String> {
-    edit_profiles(path, |profiles| {
+    edit_json(path, |profiles: &mut Profiles| {
         profiles.remove(name).ok_or(MISSING_PROFILE)?;
         Ok(())
     })
 }
 
-fn edit_profiles(
+fn edit_json<T: Serialize + serde::de::DeserializeOwned + Default>(
     path: &Path,
-    edit: impl FnOnce(&mut Profiles) -> Result<(), &str>,
+    edit: impl FnOnce(&mut T) -> Result<(), &str>,
 ) -> Result<(), String> {
     let parent = path
         .parent()
@@ -118,10 +141,10 @@ fn edit_profiles(
         .open(lock_path)
         .map_err(|_| WRITE_ERROR)?;
     lock.lock().map_err(|_| WRITE_ERROR)?;
-    let mut profiles = load(path)?;
-    edit(&mut profiles)?;
+    let mut values = read_json(path)?;
+    edit(&mut values)?;
     let mut output = NamedTempFile::new_in(parent).map_err(|_| WRITE_ERROR)?;
-    serde_json::to_writer_pretty(&mut output, &profiles).map_err(|_| WRITE_ERROR)?;
+    serde_json::to_writer_pretty(&mut output, &values).map_err(|_| WRITE_ERROR)?;
     output.write_all(b"\n").map_err(|_| WRITE_ERROR)?;
     output.as_file().sync_all().map_err(|_| WRITE_ERROR)?;
     output.persist(path).map_err(|_| WRITE_ERROR)?;
