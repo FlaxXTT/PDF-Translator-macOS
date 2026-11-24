@@ -1084,13 +1084,10 @@ pub(crate) async fn start_translate(
     let custom_dir = app.zotero_storage_dir();
     let storage_dir = app.zotero.storage_dir(custom_dir.as_deref());
 
-    {
-        let st = app.zotero.inner.lock().unwrap_or_else(|e| e.into_inner());
-        if let Some(existing) = st.jobs.get(&lib_key) {
-            if existing.state.running {
-                return Ok(Json(json!({ "job": existing.state })));
-            }
-        }
+    let (service, mut opts) = app.current_service_and_options();
+    let mut state = app.zotero.inner.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(existing) = state.jobs.get(&lib_key).filter(|job| job.state.running) {
+        return Ok(Json(json!({ "job": existing.state })));
     }
 
     let (mut doc, _) = app
@@ -1098,7 +1095,6 @@ pub(crate) async fn start_translate(
         .load_doc(&storage_dir, &lib_key, None)
         .ok_or_else(|| ApiError::bad("文档尚未解析完成，请稍后重试。"))?;
 
-    let (service, mut opts) = app.current_service_and_options();
     let term_instruction = "翻译学术论文时：1) 若原文含 <s1>...</s1> 分句标签，请严格保留对应标签；2) 对核心专业术语、模型/算法/方法名称或关键学术概念（普通日常词汇勿标），请用 [[中文术语|Original English Term]] 行内标注，例如 [[多智能体协同导航|Multi-Agent Cooperative Navigation]]，每句仅标最核心的 1～4 个术语。";
     if opts.prompt.trim().is_empty() {
         opts.prompt = term_instruction.to_owned();
@@ -1178,16 +1174,11 @@ pub(crate) async fn start_translate(
         return Ok(Json(json!({ "job": job_state })));
     }
 
-    {
-        let mut st = app.zotero.inner.lock().unwrap_or_else(|e| e.into_inner());
-        st.jobs.insert(
-            lib_key.clone(),
-            ActiveJob {
-                state: job_state.clone(),
-                flag: flag.clone(),
-            },
-        );
-    }
+    state.jobs.insert(
+        lib_key.clone(),
+        ActiveJob { state: job_state.clone(), flag: flag.clone() },
+    );
+    drop(state);
 
     let app_bg = app.clone();
     let lib_key_bg = lib_key.clone();
@@ -1284,7 +1275,7 @@ async fn run_zotero_translation(
     let translator = match Translator::new(service) {
         Ok(t) => t,
         Err(err) => {
-            finish_zotero_job(&app, &lib_key, &doc, Some(err), false);
+            finish_zotero_job(&app, &lib_key, &doc, &flag, Some(err));
             return;
         }
     };
@@ -1323,14 +1314,13 @@ async fn run_zotero_translation(
                         }
                     }
                 }
+                let mut state = app.zotero.inner.lock().unwrap_or_else(|e| e.into_inner());
+                let Some(job) = current_job(&mut state, &lib_key, &flag) else { return };
                 let _ = app.zotero.save_doc(&storage_dir, &mut doc);
                 let (done, total, failed, _) = doc_stats(&doc);
-                let mut st = app.zotero.inner.lock().unwrap_or_else(|e| e.into_inner());
-                if let Some(job) = st.jobs.get_mut(&lib_key) {
-                    job.state.done = done;
-                    job.state.total = total;
-                    job.state.failed = failed;
-                }
+                job.state.done = done;
+                job.state.total = total;
+                job.state.failed = failed;
             }
             Err(err) => {
                 if flag.load(Ordering::Relaxed) || err == "Canceled" {
@@ -1342,27 +1332,31 @@ async fn run_zotero_translation(
         }
     }
 
-    let _ = app.zotero.save_doc(&storage_dir, &mut doc);
-    let cancelled = flag.load(Ordering::Relaxed);
-    finish_zotero_job(&app, &lib_key, &doc, last_error, cancelled);
+    let mut state = app.zotero.inner.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(job) = current_job(&mut state, &lib_key, &flag) {
+        let _ = app.zotero.save_doc(&storage_dir, &mut doc);
+        update_finished_job(job, &doc, last_error);
+    }
 }
 
-fn finish_zotero_job(
-    app: &Workbench,
-    lib_key: &str,
-    doc: &ZoteroDoc,
-    error: Option<String>,
-    cancelled: bool,
-) {
+fn current_job<'a>(state: &'a mut ZoteroState, key: &str, flag: &Arc<AtomicBool>) -> Option<&'a mut ActiveJob> {
+    state.jobs.get_mut(key).filter(|job| Arc::ptr_eq(&job.flag, flag))
+}
+
+fn update_finished_job(job: &mut ActiveJob, doc: &ZoteroDoc, error: Option<String>) {
     let (done, total, failed, _) = doc_stats(doc);
-    let mut st = app.zotero.inner.lock().unwrap_or_else(|e| e.into_inner());
-    if let Some(job) = st.jobs.get_mut(lib_key) {
-        job.state.running = false;
-        job.state.cancelled = cancelled;
-        job.state.error = error;
-        job.state.done = done;
-        job.state.total = total;
-        job.state.failed = failed;
+    job.state.running = false;
+    job.state.cancelled = job.flag.load(Ordering::Relaxed);
+    job.state.error = error;
+    job.state.done = done;
+    job.state.total = total;
+    job.state.failed = failed;
+}
+
+fn finish_zotero_job(app: &Workbench, key: &str, doc: &ZoteroDoc, flag: &Arc<AtomicBool>, error: Option<String>) {
+    let mut state = app.zotero.inner.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(job) = current_job(&mut state, key, flag) {
+        update_finished_job(job, doc, error);
     }
 }
 
@@ -1385,18 +1379,31 @@ pub(crate) async fn delete_doc(
     let lib_key = decode_key(&key);
     let custom_dir = app.zotero_storage_dir();
     let storage_dir = app.zotero.storage_dir(custom_dir.as_deref());
-    {
-        let mut st = app.zotero.inner.lock().unwrap_or_else(|e| e.into_inner());
-        if let Some(job) = st.jobs.remove(&lib_key) {
-            job.flag.store(true, Ordering::Relaxed);
-        }
-    }
+    let mut state = app.zotero.inner.lock().unwrap_or_else(|e| e.into_inner());
     let mut index = app.zotero.load_index(&storage_dir);
     if let Some(entry) = index.entries.remove(&lib_key) {
-        let _ = fs::remove_dir_all(app.zotero.cache_dir(&storage_dir).join("items").join(&entry.folder));
-        app.zotero
-            .write_index(&storage_dir, &mut index)
-            .map_err(ApiError::bad)?;
+        let mut components = Path::new(&entry.folder).components();
+        if !matches!(components.next(), Some(std::path::Component::Normal(_))) || components.next().is_some() {
+            return Err(ApiError::bad("译文缓存目录无效。"));
+        }
+        let cache = app.zotero.cache_dir(&storage_dir);
+        let folder = cache.join("items").join(entry.folder);
+        let pending = tempfile::Builder::new().prefix("deleted-").tempdir_in(cache).map_err(|_| ApiError::disk())?;
+        let backup = pending.path().join("item");
+        let moved = match fs::rename(&folder, &backup) {
+            Ok(()) => true,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+            Err(_) => return Err(ApiError::disk()),
+        };
+        if let Err(error) = app.zotero.write_index(&storage_dir, &mut index) {
+            if moved && fs::rename(&backup, &folder).is_err() {
+                let _ = pending.keep();
+            }
+            return Err(ApiError::bad(error));
+        }
+    }
+    if let Some(job) = state.jobs.remove(&lib_key) {
+        job.flag.store(true, Ordering::Relaxed);
     }
     Ok(StatusCode::NO_CONTENT)
 }
@@ -1413,13 +1420,20 @@ pub(crate) async fn reveal_folder(
 ) -> Result<StatusCode, ApiError> {
     let custom_dir = app.zotero_storage_dir();
     let storage_dir = app.zotero.storage_dir(custom_dir.as_deref());
-    let _ = app.zotero.ensure_storage(&storage_dir);
     let target = match body.and_then(|b| b.0.kind).as_deref() {
         Some("md") => app.zotero.export_md_dir(&storage_dir),
         Some("pdf") => app.zotero.export_pdf_dir(&storage_dir),
-        _ => storage_dir,
+        _ => storage_dir.clone(),
     };
-    let _ = Command::new("/usr/bin/open").arg(&target).spawn();
+    tokio::task::spawn_blocking(move || {
+        app.zotero.ensure_storage(&storage_dir).map_err(ApiError::bad)?;
+        let output = Command::new("/usr/bin/open").arg(&target).output()
+            .map_err(|_| ApiError::bad("无法启动 Finder。"))?;
+        if !output.status.success() {
+            return Err(ApiError::bad("Finder 无法打开该目录，请检查路径和访问权限。"));
+        }
+        Ok(())
+    }).await.map_err(|_| ApiError::bad("打开文件夹的任务意外中断。"))??;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -2008,15 +2022,25 @@ pub(crate) async fn plugin_uninstall(
                 std::thread::sleep(std::time::Duration::from_millis(350));
             }
         }
-        for profile in &profiles {
-            let _ = fs::remove_file(profile.join("extensions").join(PLUGIN_XPI_NAME));
-            let _ = fs::remove_file(profile.join("addonStartup.json.lz4"));
-        }
+        let removed = profiles.iter().try_for_each(|profile| {
+            for path in [
+                profile.join("extensions").join(PLUGIN_XPI_NAME),
+                profile.join("addonStartup.json.lz4"),
+            ] {
+                match fs::remove_file(path) {
+                    Ok(()) => {}
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(error) => return Err(format!("无法更新 Zotero 插件文件：{error}")),
+                }
+            }
+            Ok(())
+        });
         if was_running {
             if let Some(app_path) = find_zotero_app() {
                 let _ = Command::new("/usr/bin/open").arg(&app_path).spawn();
             }
         }
+        removed?;
         Ok(json!({ "ok": true, "status": plugin_status_snapshot(&data_dir) }))
     })
     .await

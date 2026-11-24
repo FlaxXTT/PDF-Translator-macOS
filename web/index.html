@@ -319,7 +319,7 @@
         <div id="zotero-term-tip" class="z-term-tip" hidden></div>
       </div>
 
-      <div id="zotero-toast" class="z-toast"></div>
+      <div id="zotero-toast" class="z-toast" role="status"></div>
     </section>
     <section id="yepage-settings" class="settings" role="tabpanel" aria-labelledby="settings-tab" hidden>
       <div class="settings-heading">
@@ -442,6 +442,16 @@
         </div>
       </div>
     </section>
+    <dialog id="zotero-confirm-dialog" class="z-glossary" aria-labelledby="zotero-confirm-title" aria-describedby="zotero-confirm-message">
+      <h2 id="zotero-confirm-title"></h2>
+      <p id="zotero-confirm-message"></p>
+      <p id="zotero-confirm-status" role="status" hidden></p>
+      <footer>
+        <button type="button" class="secondary z-sm" id="zotero-confirm-cancel" autofocus>取消</button>
+        <button type="button" class="secondary danger z-sm" id="zotero-confirm-action">确认</button>
+      </footer>
+    </dialog>
+
   </main>
 </body>
 </html>

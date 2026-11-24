@@ -53,6 +53,12 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
     libMeta: byId("zotero-lib-meta"),
     folderSidebar: byId("zotero-folder-sidebar"),
     libList: byId("zotero-lib-list"),
+    confirmDialog: byId("zotero-confirm-dialog"),
+    confirmTitle: byId("zotero-confirm-title"),
+    confirmMessage: byId("zotero-confirm-message"),
+    confirmStatus: byId("zotero-confirm-status"),
+    confirmCancel: byId("zotero-confirm-cancel"),
+    confirmAction: byId("zotero-confirm-action"),
     btnBack: byId("zotero-back"),
     outlineToggle: byId("zotero-outline-toggle"),
     outlineDrawer: byId("zotero-outline-drawer"),
@@ -405,17 +411,57 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
         if (ev.target.closest(".z-del-icon")) return;
         openPaper(it.lib_key);
       });
-      row.querySelector(".z-del-icon")?.addEventListener("click", async (ev) => {
+      row.querySelector(".z-del-icon")?.addEventListener("click", (ev) => {
         ev.stopPropagation();
-        if (!confirm(`确定清除「${it.title}」的本地译文吗？\n不会影响 Zotero 原文件及已导出的文档。`)) return;
-        await zApi(`/api/zotero/doc/${encodeURIComponent(it.lib_key)}`, { method: "DELETE" });
-        toast("已清除译文缓存");
-        refreshLibrary();
+        openConfirmation(
+          "删除译文",
+          `确定清除「${it.title}」的本地译文缓存吗？应用内的笔记和术语表也会清除。Zotero 原文件和已导出的文档会保留。`,
+          async () => {
+            await zApi(`/api/zotero/doc/${encodeURIComponent(it.lib_key)}`, { method: "DELETE" });
+            await refreshLibrary();
+            toast("已清除译文缓存");
+          },
+        );
       });
       frag.append(row);
     }
     els.libList.replaceChildren(frag);
   }
+
+  let pendingConfirmation;
+
+  function openConfirmation(title, message, action) {
+    if (els.confirmDialog.open) return;
+    pendingConfirmation = action;
+    els.confirmTitle.textContent = title;
+    els.confirmMessage.textContent = message;
+    els.confirmAction.textContent = title;
+    els.confirmStatus.hidden = true;
+    els.confirmDialog.showModal();
+  }
+
+  els.confirmCancel.addEventListener("click", () => els.confirmDialog.close());
+  els.confirmDialog.addEventListener("close", () => {
+    if (!els.confirmDialog.open) pendingConfirmation = undefined;
+  });
+  els.confirmDialog.addEventListener("cancel", (event) => {
+    if (els.confirmAction.disabled) event.preventDefault();
+  });
+  els.confirmAction.addEventListener("click", async () => {
+    if (!pendingConfirmation || els.confirmAction.disabled) return;
+    els.confirmAction.disabled = els.confirmCancel.disabled = true;
+    els.confirmStatus.hidden = false;
+    const title = els.confirmTitle.textContent;
+    els.confirmStatus.textContent = `正在${title}…`;
+    try {
+      await pendingConfirmation();
+      els.confirmDialog.close();
+    } catch (error) {
+      els.confirmStatus.textContent = `${title}失败：${error.message}`;
+    } finally {
+      els.confirmAction.disabled = els.confirmCancel.disabled = false;
+    }
+  });
 
   /* ─────────────────────────── Reader ─────────────────────────── */
 
@@ -1208,17 +1254,25 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
     }
   }
 
-  async function runUninstall() {
-    if (!confirm("确定从 Zotero 中卸载 PDF Translator 桥接插件吗？\n（不会删除已翻译的文件）")) return;
-    if (els.settingsUninstall) els.settingsUninstall.disabled = true;
+  function runUninstall() {
+    openConfirmation(
+      "卸载插件",
+      "确定从 Zotero 中卸载 PDF Translator 桥接插件吗？已翻译的文件会保留。",
+      async () => {
+        await zApi("/api/zotero/plugin-uninstall", { method: "POST" });
+        await refreshPluginStatus();
+        els.settingsStatus.textContent = "已卸载 Zotero 桥接插件";
+      },
+    );
+  }
+
+  async function revealOutputFolder() {
     try {
-      await zApi("/api/zotero/plugin-uninstall", { method: "POST" });
-      toast("已卸载 Zotero 桥接插件");
-      await refreshPluginStatus();
-    } catch (e) {
-      toast(`卸载失败：${e.message}`);
-    } finally {
-      if (els.settingsUninstall) els.settingsUninstall.disabled = false;
+      await zApi("/api/zotero/reveal", { method: "POST", json: {} });
+    } catch (error) {
+      const message = `打开文件夹失败：${error.message}`;
+      if (els.panel.hidden) els.settingsStatus.textContent = message;
+      else toast(message);
     }
   }
 
@@ -1226,13 +1280,13 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
   els.bannerInstall?.addEventListener("click", runOneClickInstall);
   els.settingsInstall?.addEventListener("click", runOneClickInstall);
   els.settingsUninstall?.addEventListener("click", runUninstall);
-  els.settingsOpenDir?.addEventListener("click", () => zApi("/api/zotero/reveal", { method: "POST", json: {} }));
+  els.settingsOpenDir?.addEventListener("click", revealOutputFolder);
 
   els.libRefresh.addEventListener("click", () => {
     refreshLibrary();
     refreshPluginStatus();
   });
-  els.libOpenFolder.addEventListener("click", () => zApi("/api/zotero/reveal", { method: "POST", json: {} }));
+  els.libOpenFolder.addEventListener("click", revealOutputFolder);
   refreshPluginStatus();
 
   els.libSort?.addEventListener("change", () => {
@@ -1336,25 +1390,31 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
     if (!state.activeKey || !state.pdfDoc) return;
     els.moreMenu.hidden = true;
     toast("正在重新解析 PDF 并过滤图片文字…");
-    const extracted = await extractDocument(state.pdfDoc);
-    const saved = await zApi(`/api/zotero/doc/${encodeURIComponent(state.activeKey)}`, { method: "POST", json: extracted });
-    state.doc = saved.doc;
-    state.annotations = state.doc.annotations || [];
-    renderReader();
-    renderAnnotations();
-    buildOutline();
-    toast("已重新解析完成，图片内杂乱文字已过滤");
+    const key = state.activeKey;
+    try {
+      const extracted = await extractDocument(state.pdfDoc);
+      const saved = await zApi(`/api/zotero/doc/${encodeURIComponent(key)}`, { method: "POST", json: extracted });
+      if (state.activeKey !== key) return;
+      state.doc = saved.doc;
+      state.annotations = state.doc.annotations || [];
+      renderReader();
+      renderAnnotations();
+      buildOutline();
+      toast("已重新解析完成，图片内杂乱文字已过滤");
+    } catch (error) {
+      toast(`重新解析失败：${error.message}`);
+    }
   });
 
   els.btnTranslate.addEventListener("click", async () => {
     if (!state.activeKey) return;
     const encoded = encodeURIComponent(state.activeKey);
-    if (state.job?.running) {
-      await zApi(`/api/zotero/cancel/${encoded}`, { method: "POST" });
-      toast("正在暂停翻译…");
-      return;
-    }
     try {
+      if (state.job?.running) {
+        await zApi(`/api/zotero/cancel/${encoded}`, { method: "POST" });
+        toast("正在暂停翻译…");
+        return;
+      }
       const res = await zApi(`/api/zotero/translate/${encoded}`, {
         method: "POST",
         json: { priority_page: currentPageNumber() },
@@ -1389,21 +1449,23 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
     }
   });
 
-  els.btnFolder.addEventListener("click", () => {
-    zApi("/api/zotero/reveal", { method: "POST", json: {} });
-  });
+  els.btnFolder.addEventListener("click", revealOutputFolder);
 
   // Focus rail actions (retranslate & clear)
   els.focusRetranslate?.addEventListener("click", async () => {
     if (!state.activeKey || state.activeSid === null) return;
     const sid = state.activeSid;
-    const res = await zApi(`/api/zotero/translate/${encodeURIComponent(state.activeKey)}`, {
-      method: "POST",
-      json: { only_indices: [sid] },
-    });
-    state.job = res.job;
-    updateTranslateUI();
-    if (state.job?.running) startJobPoll();
+    try {
+      const res = await zApi(`/api/zotero/translate/${encodeURIComponent(state.activeKey)}`, {
+        method: "POST",
+        json: { only_indices: [sid] },
+      });
+      state.job = res.job;
+      updateTranslateUI();
+      if (state.job?.running) startJobPoll();
+    } catch (error) {
+      toast(`重译失败：${error.message}`);
+    }
   });
   els.focusClear.addEventListener("click", () => focusSentence(null));
 
@@ -1429,7 +1491,7 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
 
   // Shortcuts (⌘F search, ⌘+/⌘−/⌘0 PDF zoom, Esc close)
   window.addEventListener("keydown", (ev) => {
-    if (els.panel.hidden || els.readerView.hidden || els.glossary.open) return;
+    if (els.panel.hidden || els.readerView.hidden || els.glossary.open || els.confirmDialog.open) return;
     if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "f") {
       ev.preventDefault();
       openSearch();
@@ -1574,22 +1636,34 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
     if (!state.activeKey) return;
     const existing = state.annotations.find((a) => a.sid === sid);
     const nextStarred = starred !== undefined ? starred : Boolean(existing?.starred);
-    const res = await zApi(`/api/zotero/annotations/${encodeURIComponent(state.activeKey)}`, {
-      method: "POST",
-      json: { id: existing?.id || null, sid, color, note, starred: nextStarred },
-    });
-    state.annotations = res.annotations || [];
-    renderAnnotations();
+    try {
+      const res = await zApi(`/api/zotero/annotations/${encodeURIComponent(state.activeKey)}`, {
+        method: "POST",
+        json: { id: existing?.id || null, sid, color, note, starred: nextStarred },
+      });
+      state.annotations = res.annotations || [];
+      renderAnnotations();
+      return true;
+    } catch (error) {
+      toast(`保存标注失败：${error.message}`);
+      return false;
+    }
   }
 
   async function removeAnnotation(annId) {
     if (!state.activeKey || !annId) return;
-    const res = await zApi(`/api/zotero/annotations/${encodeURIComponent(state.activeKey)}/${encodeURIComponent(annId)}`, {
-      method: "DELETE",
-    });
-    state.annotations = res.annotations || [];
-    renderAnnotations();
-    toast("已同步删除原文与译文标注");
+    try {
+      const res = await zApi(`/api/zotero/annotations/${encodeURIComponent(state.activeKey)}/${encodeURIComponent(annId)}`, {
+        method: "DELETE",
+      });
+      state.annotations = res.annotations || [];
+      renderAnnotations();
+      toast("已同步删除原文与译文标注");
+      return true;
+    } catch (error) {
+      toast(`删除标注失败：${error.message}`);
+      return false;
+    }
   }
 
   function openNoteEditor(sid) {
@@ -1617,8 +1691,9 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
     dot.addEventListener("click", async () => {
       if (state.activeSid === null) return;
       const existing = state.annotations.find((a) => a.sid === state.activeSid);
-      await saveAnnotation(state.activeSid, dot.dataset.hl, existing?.note || "");
-      toast("已同步高亮原文与译文");
+      if (await saveAnnotation(state.activeSid, dot.dataset.hl, existing?.note || "")) {
+        toast("已同步高亮原文与译文");
+      }
     });
   }
   for (const dot of document.querySelectorAll("[data-note-color]")) {
@@ -1636,8 +1711,9 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
     if (state.activeSid === null) return;
     const existing = state.annotations.find((a) => a.sid === state.activeSid);
     const nextStar = !existing?.starred;
-    await saveAnnotation(state.activeSid, existing?.color || "yellow", existing?.note || "", nextStar);
-    toast(nextStar ? "已收藏此句（可在左侧「笔记」查看）" : "已取消收藏");
+    if (await saveAnnotation(state.activeSid, existing?.color || "yellow", existing?.note || "", nextStar)) {
+      toast(nextStar ? "已收藏此句（可在左侧「笔记」查看）" : "已取消收藏");
+    }
   });
   els.unmarkBtn?.addEventListener("click", async () => {
     const existing = state.annotations.find((a) => a.sid === state.activeSid);
@@ -1645,14 +1721,14 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
   });
   els.noteSave?.addEventListener("click", async () => {
     if (state.noteDraftSid === null) return;
-    await saveAnnotation(state.noteDraftSid, state.noteDraftColor, els.noteInput.value);
-    closeNoteEditor();
-    toast("笔记已同步保存至原文与译文");
+    if (await saveAnnotation(state.noteDraftSid, state.noteDraftColor, els.noteInput.value)) {
+      closeNoteEditor();
+      toast("笔记已同步保存至原文与译文");
+    }
   });
   els.noteDelete?.addEventListener("click", async () => {
     const existing = state.annotations.find((a) => a.sid === state.noteDraftSid);
-    closeNoteEditor();
-    if (existing) await removeAnnotation(existing.id);
+    if (existing && await removeAnnotation(existing.id)) closeNoteEditor();
   });
   els.noteCancel?.addEventListener("click", closeNoteEditor);
 
@@ -1866,14 +1942,18 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
 
   els.paneRight?.addEventListener("scroll", hideTermTip, { passive: true });
 
-  els.zhStream?.addEventListener("click", (ev) => {
+  els.zhStream?.addEventListener("click", async (ev) => {
     if (!state.showTerms) return;
     const termEl = ev.target.closest?.(".z-term");
     if (!termEl || !termEl.dataset.en) return;
     ev.stopPropagation();
     const en = termEl.dataset.en;
-    navigator.clipboard?.writeText(en).catch(() => {});
-    toast(`已复制英文术语：${en}`);
+    try {
+      await navigator.clipboard.writeText(en);
+      toast(`已复制英文术语：${en}`);
+    } catch {
+      toast("复制英文术语失败");
+    }
   }, true);
 
   // Poll for incoming Zotero bridge handoffs (500ms for instant jump)
