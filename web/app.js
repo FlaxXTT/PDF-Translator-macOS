@@ -1034,3 +1034,104 @@ const zoteroModule = initZoteroModule({
 });
 byId("zotero-tab").addEventListener("click", () => zoteroModule.refreshLibrary());
 zoteroModule.refreshLibrary();
+
+/* ── Interactive Motion: Magnetic Buttons, 3D Card Tilt & Dark-Mode Spotlight ── */
+(function initInteractiveMotion() {
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  const MAGNETIC_SELECTOR = ".primary, .empty-action, .z-connected-pill";
+  const TILT_SELECTOR = ".file-icon, .z-card, .zset-card, .file-controls, .translation-controls, .settings-group";
+
+  const pdfLogo = document.querySelector("#workspace-preview-empty .file-icon");
+  if (pdfLogo) {
+    pdfLogo.title = "点击选择 PDF";
+  }
+
+  let activeMagnetic = null;
+  let activeTilt = null;
+  let rafId = 0;
+  let pointerX = 0;
+  let pointerY = 0;
+
+  const clamp = (value) => Math.max(-1, Math.min(1, value));
+
+  const resetMagnetic = (el) => {
+    if (!el) return;
+    el.classList.remove("is-magnetic");
+    el.style.removeProperty("--mx");
+    el.style.removeProperty("--my");
+  };
+
+  const resetTilt = (el) => {
+    if (!el) return;
+    el.classList.remove("is-tilting");
+    el.style.removeProperty("--tilt-rx");
+    el.style.removeProperty("--tilt-ry");
+  };
+
+  const updateFrame = () => {
+    rafId = 0;
+    document.body.style.setProperty("--spot-x", `${pointerX}px`);
+    document.body.style.setProperty("--spot-y", `${pointerY}px`);
+
+    if (activeMagnetic && !activeMagnetic.disabled && !activeMagnetic.closest("button:disabled")) {
+      const rect = activeMagnetic.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        const dx = clamp((pointerX - (rect.left + rect.width / 2)) / (rect.width / 2));
+        const dy = clamp((pointerY - (rect.top + rect.height / 2)) / (rect.height / 2));
+        const maxShift = 4.5;
+        activeMagnetic.classList.add("is-magnetic");
+        activeMagnetic.style.setProperty("--mx", `${(dx * maxShift).toFixed(2)}px`);
+        activeMagnetic.style.setProperty("--my", `${(dy * maxShift).toFixed(2)}px`);
+      }
+    }
+
+    if (activeTilt && !activeTilt.closest("button:disabled")) {
+      const rect = activeTilt.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        const nx = clamp((pointerX - (rect.left + rect.width / 2)) / (rect.width / 2));
+        const ny = clamp((pointerY - (rect.top + rect.height / 2)) / (rect.height / 2));
+        const maxAngle = activeTilt.classList.contains("file-icon") ? 12 : 2.6;
+        activeTilt.classList.add("is-tilting");
+        activeTilt.style.setProperty("--tilt-rx", `${(-ny * maxAngle).toFixed(2)}deg`);
+        activeTilt.style.setProperty("--tilt-ry", `${(nx * maxAngle).toFixed(2)}deg`);
+      }
+    }
+  };
+
+  document.addEventListener("pointermove", (event) => {
+    if (event.pointerType === "touch" || reducedMotion.matches) return;
+    document.body.classList.add("has-pointer");
+    pointerX = event.clientX;
+    pointerY = event.clientY;
+
+    const target = event.target instanceof Element ? event.target : null;
+    const nextMagnetic = target?.closest(MAGNETIC_SELECTOR) || null;
+    if (nextMagnetic !== activeMagnetic) {
+      resetMagnetic(activeMagnetic);
+      activeMagnetic = nextMagnetic;
+    }
+
+    const nextTilt = target?.closest(TILT_SELECTOR) || null;
+    if (nextTilt !== activeTilt) {
+      resetTilt(activeTilt);
+      activeTilt = nextTilt;
+    }
+
+    if (!rafId) rafId = requestAnimationFrame(updateFrame);
+  }, { passive: true });
+
+  function resetMotion() {
+    cancelAnimationFrame(rafId);
+    rafId = 0;
+    document.body.classList.remove("has-pointer");
+    resetMagnetic(activeMagnetic);
+    resetTilt(activeTilt);
+    activeMagnetic = null;
+    activeTilt = null;
+  }
+
+  document.addEventListener("pointerleave", resetMotion);
+  window.addEventListener("blur", resetMotion);
+  reducedMotion.addEventListener("change", resetMotion);
+})();
