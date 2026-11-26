@@ -1,3 +1,12 @@
+export function pdfPixelRatio(width, height) {
+  return Math.min(
+    window.devicePixelRatio || 1,
+    2,
+    Math.sqrt(12_000_000 / (width * height)),
+    8192 / Math.max(width, height),
+  );
+}
+
 /** Canvas viewer with a single in-flight page render and independent page positions. */
 export class PdfPreview {
   #surface;
@@ -19,6 +28,8 @@ export class PdfPreview {
   #generation = 0;
   #drawGeneration = 0;
   #resizeFrame;
+  #resizeTimer;
+  #resizeWidth = 0;
 
   constructor(elements) {
     this.#surface = elements.surface;
@@ -44,10 +55,27 @@ export class PdfPreview {
     };
     this.#surface.addEventListener("keydown", turnPage);
     this.#controls.addEventListener("keydown", turnPage);
-    new ResizeObserver(() => {
+    const observer = new ResizeObserver(() => {
       cancelAnimationFrame(this.#resizeFrame);
-      this.#resizeFrame = requestAnimationFrame(() => this.#render());
-    }).observe(this.#surface);
+      this.#resizeFrame = requestAnimationFrame(() => this.#resize());
+    });
+    observer.observe(this.#surface);
+    observer.observe(this.#wrap);
+  }
+
+  #fitWidth() {
+    return this.#wrap.hidden ? this.#surface.clientWidth : this.#wrap.clientWidth;
+  }
+
+  #resize() {
+    const width = this.#fitWidth();
+    if (!this.#pdf || width < 35 || width === this.#resizeWidth) return;
+    if (!this.#wrap.hidden && this.#resizeWidth) {
+      this.#wrap.scrollTop *= width / this.#resizeWidth;
+    }
+    this.#resizeWidth = width;
+    clearTimeout(this.#resizeTimer);
+    this.#resizeTimer = setTimeout(() => this.#render(), 120);
   }
 
   #updateControls() {
@@ -68,12 +96,17 @@ export class PdfPreview {
   async show(url, keepPage = false) {
     if (url === this.#url) return;
     const generation = ++this.#generation;
+    clearTimeout(this.#resizeTimer);
+    this.#resizeWidth = 0;
     this.#drawTask?.cancel();
     this.#loading?.destroy().catch(() => {});
     this.#loading = undefined;
     this.#pdf = undefined;
     this.#url = url;
-    if (!keepPage) this.#page = 1;
+    if (!keepPage) {
+      this.#page = 1;
+      this.#wrap.scrollTop = 0;
+    }
     this.#wrap.hidden = true;
     this.#empty.hidden = Boolean(url);
     this.#updateControls();
@@ -108,16 +141,19 @@ export class PdfPreview {
 
   goTo(page) {
     if (!this.#pdf) return;
-    this.#page = Number.isInteger(page) ? Math.min(this.#pdf.numPages, Math.max(1, page)) : this.#page;
+    const next = Number.isInteger(page) ? Math.min(this.#pdf.numPages, Math.max(1, page)) : this.#page;
+    if (next !== this.#page) this.#wrap.scrollTop = 0;
+    this.#page = next;
+    clearTimeout(this.#resizeTimer);
     this.#updateControls();
     this.#render();
   }
 
   async #render() {
     const pdf = this.#pdf;
-    const width = this.#surface.clientWidth;
-    const height = this.#surface.clientHeight;
-    if (!pdf || width < 35 || height < 35) return;
+    const width = this.#fitWidth();
+    if (!pdf || width < 35 || this.#surface.clientHeight < 35) return;
+    this.#resizeWidth = width;
     const generation = this.#generation;
     const drawGeneration = ++this.#drawGeneration;
     const current = () => generation === this.#generation && drawGeneration === this.#drawGeneration;
@@ -126,9 +162,8 @@ export class PdfPreview {
       const page = await pdf.getPage(this.#page);
       if (!current()) return;
       const size = page.getViewport({ scale: 1 });
-      const scale = Math.min((width - 24) / size.width, (height - 24) / size.height);
-      const viewport = page.getViewport({ scale });
-      const pixelRatio = Math.min(2, window.devicePixelRatio || 1);
+      const viewport = page.getViewport({ scale: width / size.width });
+      const pixelRatio = pdfPixelRatio(viewport.width, viewport.height);
       const staged = document.createElement("canvas");
       staged.width = Math.ceil(viewport.width * pixelRatio);
       staged.height = Math.ceil(viewport.height * pixelRatio);
@@ -144,8 +179,6 @@ export class PdfPreview {
       this.#drawTask = undefined;
       this.#canvas.width = staged.width;
       this.#canvas.height = staged.height;
-      this.#canvas.style.width = `${viewport.width}px`;
-      this.#canvas.style.height = `${viewport.height}px`;
       this.#canvas.getContext("2d").drawImage(staged, 0, 0);
       this.#wrap.hidden = false;
       this.#announce("");

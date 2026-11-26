@@ -1,8 +1,9 @@
+import { pdfPixelRatio } from "/preview.js";
 import { openPdfFromUrl, extractDocument } from "/zotero-extract.js";
 
 const byId = (id) => document.getElementById(id);
 
-async function zApi(path, { method = "GET", json } = {}) {
+async function zApi(path, { method = "GET", json, keepalive = false } = {}) {
   const headers = {};
   if (method !== "GET" && method !== "HEAD") headers["x-hermeneuein"] = "1";
   let body;
@@ -10,7 +11,7 @@ async function zApi(path, { method = "GET", json } = {}) {
     headers["content-type"] = "application/json";
     body = JSON.stringify(json);
   }
-  const res = await fetch(path, { method, headers, body });
+  const res = await fetch(path, { method, headers, body, keepalive });
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `请求失败 (${res.status})`);
@@ -93,6 +94,12 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
     fontLabel: byId("zotero-font-label"),
     fontInc: byId("zotero-font-inc"),
     fontToggle: byId("zotero-font-toggle"),
+    marginToggle: byId("zotero-margin-toggle"),
+    marginPopover: byId("zotero-margin-popover"),
+    marginHandle: byId("zotero-margin-handle"),
+    marginReset: byId("zotero-margin-reset"),
+    translationMargin: byId("zotero-translation-margin"),
+    translationMarginValue: byId("zotero-translation-margin-value"),
     btnSearch: byId("zotero-search-toggle"),
     btnTranslate: byId("zotero-translate-btn"),
     btnWorkspace: byId("zotero-to-workspace"),
@@ -151,6 +158,7 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
     viewMode: "pdf",
     serif: false,
     zoom: 1.0,
+    fitWidth: 0,
     activeSid: null,
     hoverSid: null,
     searchQuery: "",
@@ -466,17 +474,20 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
   /* ─────────────────────────── Reader ─────────────────────────── */
 
   function showLibraryView() {
+    setMarginPopover(false);
     stopJobPoll();
     state.activeKey = null;
     els.glossary.close();
     els.readerView.hidden = true;
     els.libView.hidden = false;
     els.searchBar.hidden = true;
-    els.focusBar.hidden = true;
+    hideFocusRail();
     refreshLibrary();
   }
 
   async function openPaper(libKey) {
+    setMarginPopover(false);
+    els.marginToggle.disabled = true;
     stopJobPoll();
     state.activeKey = libKey;
     state.doc = null;
@@ -490,13 +501,13 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
     els.readerBody.hidden = true;
     els.outlineDrawer.hidden = true;
     els.moreMenu.hidden = true;
-    els.focusBar.hidden = true;
+    hideFocusRail();
     els.statusBox.hidden = false;
     els.statusBox.textContent = "正在读取 Zotero 文献…";
 
     try {
       const encoded = encodeURIComponent(libKey);
-      const res = await zApi(`/api/zotero/doc/${encoded}`);
+      const [res] = await Promise.all([zApi(`/api/zotero/doc/${encoded}`), readerLayoutReady]);
       state.info = res.info;
       state.job = res.job;
       els.docTitle.textContent = res.info.title;
@@ -526,6 +537,7 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
 
       els.statusBox.hidden = true;
       els.readerBody.hidden = false;
+      els.marginToggle.disabled = false;
       state.annotations = state.doc.annotations || [];
       setViewMode(state.viewMode);
       renderReader();
@@ -613,6 +625,7 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
     els.pdfStream.hidden = mode !== "pdf";
     els.enStream.hidden = mode !== "text";
     if (els.zoomWrap) els.zoomWrap.hidden = mode !== "pdf";
+    if (mode === "pdf") applyPdfZoom(state.zoom);
     if (state.activeSid !== null) {
       focusSentence(state.activeSid, { scrollSource: true, scrollTarget: false });
     }
@@ -751,7 +764,10 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
     state.pageNodes.clear();
     state.pdfRectNodes.clear();
 
-    state.fitWidth = pdfFitWidth();
+    clearTimeout(zoomRenderTimer);
+    zoomRenderTimer = null;
+    state.fitWidth = Math.max(1, els.paneLeft.clientWidth || Math.round(els.split.clientWidth / 2));
+    updatePdfPageWidth();
     const frag = document.createDocumentFragment();
 
     const sentsByPage = new Map();
@@ -762,15 +778,11 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
 
     for (let p = 1; p <= doc.pages; p++) {
       const [pw, ph] = doc.page_sizes?.[p - 1] || [612, 792];
-      const baseScale = Math.min(1.5, state.fitWidth / pw);
-      const cssW = Math.round(pw * baseScale * state.zoom);
-      const cssH = Math.round(ph * baseScale * state.zoom);
 
       const wrap = document.createElement("div");
       wrap.className = "z-pdf-page";
       wrap.dataset.page = String(p);
-      wrap.style.width = `${cssW}px`;
-      wrap.style.height = `${cssH}px`;
+      wrap.style.aspectRatio = pw > 0 && ph > 0 ? `${pw} / ${ph}` : "612 / 792";
 
       const canvas = document.createElement("canvas");
       const overlay = document.createElement("div");
@@ -794,7 +806,7 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
 
       wrap.append(canvas, overlay);
       frag.append(wrap);
-      state.pageNodes.set(p, { wrap, canvas, cssW, pw, ph });
+      state.pageNodes.set(p, { wrap, canvas });
     }
 
     els.pdfStream.replaceChildren(frag);
@@ -824,21 +836,23 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
 
   async function renderPdfPage(pageNum) {
     const node = state.pageNodes.get(pageNum);
-    if (!node || !state.pdfDoc || node.rendering || node.renderedWidth === node.cssW) return;
+    const width = pdfPageWidth();
+    if (!node || !state.pdfDoc || node.rendering || node.renderedWidth === width || state.viewMode !== "pdf") return;
     if (zoomRenderTimer && node.renderedWidth) return;
-    const width = node.cssW;
     const pdf = state.pdfDoc;
     node.rendering = true;
     try {
       const page = await pdf.getPage(pageNum);
       if (state.pageNodes.get(pageNum) !== node) return;
       const canvas = document.createElement("canvas");
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const viewport = page.getViewport({ scale: (width / node.pw) * dpr });
+      const size = page.getViewport({ scale: 1 });
+      const height = width * size.height / size.width;
+      const viewport = page.getViewport({ scale: width / size.width * pdfPixelRatio(width, height) });
       canvas.width = Math.round(viewport.width);
       canvas.height = Math.round(viewport.height);
       await page.render({ canvasContext: canvas.getContext("2d", { alpha: false }), viewport }).promise;
-      if (state.pageNodes.get(pageNum) === node && (width === node.cssW || !node.renderedWidth)) {
+      if (state.pageNodes.get(pageNum) === node && (width === pdfPageWidth() || !node.renderedWidth)) {
+        node.wrap.style.aspectRatio = `${size.width} / ${size.height}`;
         node.canvas.replaceWith(canvas);
         node.canvas = canvas;
         node.renderedWidth = width;
@@ -847,7 +861,7 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
       console.warn("Could not render PDF page", error);
     } finally {
       node.rendering = false;
-      if (width !== node.cssW && state.visiblePages.has(pageNum) && state.pageNodes.get(pageNum) === node) {
+      if (width !== pdfPageWidth() && state.visiblePages.has(pageNum) && state.pageNodes.get(pageNum) === node) {
         renderPdfPage(pageNum);
       }
     }
@@ -855,31 +869,39 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
 
   let zoomRenderTimer = null;
 
-  function pdfFitWidth() {
-    return Math.max(360, (els.paneLeft.clientWidth || Math.round(window.innerWidth * 0.5)) - 44);
+  function pdfPageWidth() {
+    return Math.max(1, Math.round(state.fitWidth * state.zoom));
+  }
+
+  function updatePdfPageWidth() {
+    els.pdfStream.style.setProperty("--z-pdf-page-width", `${pdfPageWidth()}px`);
+  }
+
+  function readingBlockAt(stream, y) {
+    const blocks = stream.children;
+    let low = 0;
+    let high = blocks.length - 1;
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2);
+      if (blocks[middle].getBoundingClientRect().bottom <= y) low = middle + 1;
+      else high = middle;
+    }
+    return blocks[low];
   }
 
   function applyPdfZoom(next, x, y) {
-    if (state.viewMode !== "pdf" || !state.pageNodes.size) return;
     const pane = els.paneLeft;
-    const fitWidth = pdfFitWidth();
-    if (next === state.zoom && fitWidth === state.fitWidth) return;
+    const fitWidth = pane.clientWidth;
+    if (!state.doc || els.readerBody.hidden || state.viewMode !== "pdf" || !fitWidth || !state.pageNodes.size) return;
+    const resizing = next === state.zoom;
+    if (resizing && fitWidth === state.fitWidth) return;
     const bounds = pane.getBoundingClientRect();
-    x ??= bounds.left + pane.clientWidth / 2;
-    y ??= bounds.top + pane.clientHeight / 2;
+    const keepTop = resizing && pane.scrollTop <= 1;
+    x ??= bounds.left + fitWidth / 2;
+    y ??= bounds.top + Math.min(pane.clientHeight / 2, resizing ? 64 : Infinity);
 
-    let anchor = document.elementFromPoint(x, y)?.closest(".z-pdf-page");
-    if (!anchor) {
-      // Find the page nearest the cursor even when it is over a gap or a margin.
-      let lo = 1;
-      let hi = state.pageNodes.size;
-      while (lo < hi) {
-        const mid = Math.floor((lo + hi) / 2);
-        if (state.pageNodes.get(mid).wrap.getBoundingClientRect().bottom < y) lo = mid + 1;
-        else hi = mid;
-      }
-      anchor = state.pageNodes.get(lo).wrap;
-    }
+    const underPointer = document.elementFromPoint(x, y)?.closest(".z-pdf-page");
+    const anchor = underPointer && els.pdfStream.contains(underPointer) ? underPointer : readingBlockAt(els.pdfStream, y);
     const before = anchor.getBoundingClientRect();
     const ratioX = (x - before.left) / before.width;
     const ratioY = Math.max(0, Math.min(1, (y - before.top) / before.height));
@@ -887,23 +909,68 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
     pane.classList.add("is-zooming");
     state.zoom = next;
     state.fitWidth = fitWidth;
-    for (const node of state.pageNodes.values()) {
-      const scale = Math.min(1.5, fitWidth / node.pw) * next;
-      node.cssW = Math.round(node.pw * scale);
-      node.wrap.style.width = `${node.cssW}px`;
-      node.wrap.style.height = `${Math.round(node.ph * scale)}px`;
-    }
+    updatePdfPageWidth();
     const after = anchor.getBoundingClientRect();
     pane.scrollLeft += after.left + after.width * ratioX - x;
-    pane.scrollTop += after.top + after.height * ratioY + gapY - y;
+    pane.scrollTop = keepTop ? 0 : pane.scrollTop + after.top + after.height * ratioY + gapY - y;
     pane.classList.remove("is-zooming");
     els.zoomLabel.textContent = `${Math.round(next * 100)}%`;
     clearTimeout(zoomRenderTimer);
     zoomRenderTimer = setTimeout(() => {
       zoomRenderTimer = null;
       for (const page of state.visiblePages) renderPdfPage(page);
-    }, 150);
+    }, 120);
   }
+
+  function textReadingPosition(pane, stream) {
+    if (stream.hidden || !pane.clientWidth || pane.scrollTop <= 1) return;
+    const y = pane.getBoundingClientRect().top + 24;
+    const block = readingBlockAt(stream, y);
+    if (!block) return;
+    const rect = block.getBoundingClientRect();
+    const fraction = Math.max(0, Math.min(1, (y - rect.top) / rect.height));
+    return { block, fraction, offset: y - rect.top - rect.height * fraction };
+  }
+
+  function restoreTextPosition(pane, stream, position) {
+    if (stream.contains(position?.block)) {
+      const rect = position.block.getBoundingClientRect();
+      const y = pane.getBoundingClientRect().top + 24;
+      pane.scrollTo({
+        top: pane.scrollTop + rect.top + rect.height * position.fraction + position.offset - y,
+        behavior: "instant",
+      });
+    }
+  }
+
+  function observeTextWidth(pane, stream) {
+    let width = 0;
+    let position;
+    pane.addEventListener("scroll", () => {
+      if (pane.clientWidth === width) position = textReadingPosition(pane, stream);
+    }, { passive: true });
+    return () => {
+      const next = stream.hidden ? 0 : pane.clientWidth;
+      if (next && width && next !== width) restoreTextPosition(pane, stream, position);
+      width = next;
+      position = textReadingPosition(pane, stream);
+    };
+  }
+
+  const resizeSourceText = observeTextWidth(els.paneLeft, els.enStream);
+  const resizeTranslation = observeTextWidth(els.paneRight, els.zhStream);
+  const paneObserver = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.target === els.paneLeft) {
+        applyPdfZoom(state.zoom);
+        resizeSourceText();
+      } else {
+        resizeTranslation();
+      }
+    }
+  });
+  paneObserver.observe(els.paneLeft);
+  paneObserver.observe(els.paneRight);
 
   function stepPdfZoom(step, minimum, maximum, x, y) {
     const scale = Math.round((state.zoom + step) * 100) / 100;
@@ -916,6 +983,126 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
   }
 
   /* ─────────────────────────── Bidirectional Cursor & Selection Linking ─────────────────────────── */
+
+  const reduceFocusRailMotion = matchMedia("(prefers-reduced-motion: reduce)");
+  const focusRailDocks = ["left", "bottom", "right"];
+  let annotationDock = null;
+  let focusRailDrag = null;
+  let focusRailAnimation;
+  let suppressFocusRailClick = false;
+
+  function focusRailDockAt(x, y, bounds = els.split.getBoundingClientRect()) {
+    const left = x - bounds.left;
+    const right = bounds.right - x;
+    const bottom = bounds.bottom - y;
+    // Equal distances to the bottom and a side lie on a 45° diagonal.
+    if (bottom < Math.min(left, right)) return "bottom";
+    return left <= right ? "left" : "right";
+  }
+
+  function firstAnnotationDock(sid, point) {
+    const bounds = els.split.getBoundingClientRect();
+    const nodes = state.viewMode === "text" ? state.sentNodesEn : state.sentNodesZh;
+    const selected = !point && nodes.get(sid)?.getBoundingClientRect();
+    const x = point?.clientX ?? (selected && (selected.left + selected.right) / 2);
+    const y = point?.clientY ?? (selected && (selected.top + selected.bottom) / 2);
+    const inside = x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;
+    return inside ? focusRailDockAt(x, y, bounds) : "left";
+  }
+
+  function rememberAnnotationDock(dock) {
+    if (dock === annotationDock) return;
+    annotationDock = dock;
+    saveReaderLayout({ annotation_dock: dock }, "笔记工具条位置保存失败");
+  }
+
+  function showFocusRail(sid, point) {
+    if (!els.focusBar.hidden) return;
+    if (!annotationDock) rememberAnnotationDock(firstAnnotationDock(sid, point));
+    els.focusBar.dataset.dock = annotationDock;
+    els.focusBar.hidden = false;
+  }
+
+  function snapFocusRail(dock) {
+    rememberAnnotationDock(dock);
+    const from = els.focusBar.getBoundingClientRect();
+    focusRailAnimation?.cancel();
+    els.focusBar.style.removeProperty("transform");
+    els.focusBar.dataset.dock = dock;
+    if (reduceFocusRailMotion.matches) return;
+
+    const to = els.focusBar.getBoundingClientRect();
+    const x = from.left + from.width / 2 - to.left - to.width / 2;
+    const y = from.top + from.height / 2 - to.top - to.height / 2;
+    if (Math.hypot(x, y) < 1) return;
+    focusRailAnimation = els.focusBar.animate([
+      { transform: `translate(${x}px, ${y}px)` },
+      { transform: "none" },
+    ], { duration: 250, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+  }
+
+  function moveFocusRail(drag, x, y) {
+    const bounds = els.split.getBoundingClientRect();
+    const left = Math.max(bounds.left, Math.min(bounds.right - drag.origin.width, drag.origin.left + x - drag.startX));
+    const top = Math.max(bounds.top, Math.min(bounds.bottom - drag.origin.height, drag.origin.top + y - drag.startY));
+    els.focusBar.style.transform = `translate(${left - drag.base.left}px, ${top - drag.base.top}px)`;
+  }
+
+  function finishFocusRailDrag(pointerId, drop) {
+    const drag = focusRailDrag;
+    if (!drag || drag.pointerId !== pointerId) return;
+    focusRailDrag = null;
+    cancelAnimationFrame(drag.frame);
+    if (drop && drag.origin) moveFocusRail(drag, drop.clientX, drop.clientY);
+    els.focusBar.classList.remove("is-dragging");
+    if (drag.grip.hasPointerCapture(pointerId)) drag.grip.releasePointerCapture(pointerId);
+    if (drag.origin && !els.focusBar.hidden) {
+      snapFocusRail(drop ? focusRailDockAt(drop.clientX, drop.clientY) : els.focusBar.dataset.dock);
+    }
+  }
+
+  function hideFocusRail() {
+    els.focusBar.hidden = true;
+    if (focusRailDrag) finishFocusRailDrag(focusRailDrag.pointerId);
+    focusRailAnimation?.cancel();
+    els.focusBar.style.removeProperty("transform");
+  }
+
+  els.focusBar.addEventListener("pointerdown", (ev) => {
+    const button = ev.target.closest("button");
+    if (ev.button !== 0 || focusRailDrag || (button && button !== els.focusMeta)) return;
+    suppressFocusRailClick = false;
+    const grip = button || els.focusBar;
+    grip.setPointerCapture(ev.pointerId);
+    focusRailDrag = { pointerId: ev.pointerId, grip, startX: ev.clientX, startY: ev.clientY, frame: 0 };
+  });
+  els.focusBar.addEventListener("pointermove", (ev) => {
+    const drag = focusRailDrag;
+    if (!drag || drag.pointerId !== ev.pointerId) return;
+    if (!drag.origin) {
+      if (Math.hypot(ev.clientX - drag.startX, ev.clientY - drag.startY) < 5) return;
+      suppressFocusRailClick = true;
+      drag.origin = els.focusBar.getBoundingClientRect();
+      focusRailAnimation?.cancel();
+      drag.base = els.focusBar.getBoundingClientRect();
+      els.focusBar.classList.add("is-dragging");
+    }
+    drag.x = ev.clientX;
+    drag.y = ev.clientY;
+    if (drag.frame) return;
+    drag.frame = requestAnimationFrame(() => {
+      drag.frame = 0;
+      moveFocusRail(drag, drag.x, drag.y);
+    });
+  });
+  els.focusBar.addEventListener("pointerup", (ev) => finishFocusRailDrag(ev.pointerId, ev));
+  els.focusBar.addEventListener("pointercancel", (ev) => finishFocusRailDrag(ev.pointerId));
+  els.focusBar.addEventListener("lostpointercapture", (ev) => finishFocusRailDrag(ev.pointerId));
+  els.focusMeta.addEventListener("click", (ev) => {
+    if (ev.detail && suppressFocusRailClick) return;
+    const current = focusRailDocks.indexOf(els.focusBar.dataset.dock);
+    snapFocusRail(focusRailDocks[(current + 1) % focusRailDocks.length]);
+  });
 
   function toggleSentClass(sid, cls, on) {
     state.sentNodesZh.get(sid)?.classList.toggle(cls, on);
@@ -931,18 +1118,18 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
     if (sid !== null) toggleSentClass(sid, "is-hover", true);
   }
 
-  function focusSentence(sid, { scrollSource = true, scrollTarget = true } = {}) {
+  function focusSentence(sid, { scrollSource = true, scrollTarget = true, point } = {}) {
     if (state.activeSid !== null) toggleSentClass(state.activeSid, "is-active", false);
     for (const el of els.zhStream.querySelectorAll(".z-peek")) el.remove();
     state.activeSid = sid;
     if (sid === null || !state.doc?.sentences[sid]) {
-      els.focusBar.hidden = true;
+      hideFocusRail();
       return;
     }
     const s = state.doc.sentences[sid];
     toggleSentClass(sid, "is-active", true);
     els.focusMeta.textContent = `P${s.p}`;
-    els.focusMeta.title = `第 ${s.p} 页 · 第 ${sid + 1} 句`;
+    els.focusMeta.setAttribute("aria-label", `第 ${s.p} 页，第 ${sid + 1} 句，切换笔记工具条停靠位置`);
     const existingAnn = state.annotations.find((a) => a.sid === sid);
     if (els.noteBtn) els.noteBtn.dataset.tip = existingAnn?.note ? "编辑双语笔记" : "写双语笔记";
     if (els.starBtn) {
@@ -950,7 +1137,7 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
       els.starBtn.dataset.tip = existingAnn?.starred ? "取消收藏" : "收藏此句";
     }
     if (els.unmarkBtn) els.unmarkBtn.hidden = !existingAnn;
-    els.focusBar.hidden = false;
+    showFocusRail(sid, point);
     els.pageBadge.textContent = `${s.p} / ${state.doc.pages}`;
 
     if (scrollTarget) {
@@ -993,15 +1180,15 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
   }
   els.pdfStream.addEventListener("click", (ev) => {
     const sid = sidFrom(ev.target);
-    if (sid !== null) focusSentence(sid, { scrollSource: false, scrollTarget: true });
+    if (sid !== null) focusSentence(sid, { scrollSource: false, scrollTarget: true, point: ev.detail ? ev : undefined });
   });
   els.enStream.addEventListener("click", (ev) => {
     const sid = sidFrom(ev.target);
-    if (sid !== null) focusSentence(sid, { scrollSource: false, scrollTarget: true });
+    if (sid !== null) focusSentence(sid, { scrollSource: false, scrollTarget: true, point: ev.detail ? ev : undefined });
   });
   els.zhStream.addEventListener("click", (ev) => {
     const sid = sidFrom(ev.target);
-    if (sid !== null) focusSentence(sid, { scrollSource: true, scrollTarget: false });
+    if (sid !== null) focusSentence(sid, { scrollSource: true, scrollTarget: false, point: ev.detail ? ev : undefined });
   });
 
   let selTimer;
@@ -1320,6 +1507,121 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
   els.fontInc?.addEventListener("click", () => applyFontSize(state.fontSize + 1));
   applyFontSize(state.fontSize);
 
+  const marginPopoverPosition = { top: 6, right: 6 };
+  let marginPopoverDrag = null;
+
+  function placeMarginPopover() {
+    if (els.marginPopover.hidden) return;
+    const maxRight = els.split.clientWidth - els.marginPopover.offsetWidth;
+    const maxTop = els.split.clientHeight - els.marginPopover.offsetHeight;
+    const right = Math.max(0, Math.min(marginPopoverPosition.right, maxRight));
+    const top = Math.max(0, Math.min(marginPopoverPosition.top, maxTop));
+    els.marginPopover.style.right = `${right}px`;
+    els.marginPopover.style.top = `${top}px`;
+  }
+
+  new ResizeObserver(placeMarginPopover).observe(els.split);
+
+  function endMarginPopoverDrag(pointerId) {
+    if (marginPopoverDrag?.pointerId !== pointerId) return;
+    marginPopoverDrag = null;
+    if (els.marginHandle.hasPointerCapture(pointerId)) els.marginHandle.releasePointerCapture(pointerId);
+  }
+
+  els.marginHandle.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || marginPopoverDrag) return;
+    event.preventDefault();
+    const popup = els.marginPopover.getBoundingClientRect();
+    marginPopoverDrag = {
+      pointerId: event.pointerId,
+      offsetRight: popup.right - event.clientX,
+      offsetTop: event.clientY - popup.top,
+    };
+    els.marginHandle.setPointerCapture(event.pointerId);
+  });
+  els.marginHandle.addEventListener("pointermove", (event) => {
+    const drag = marginPopoverDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const bounds = els.split.getBoundingClientRect();
+    marginPopoverPosition.right = Math.max(0, bounds.right - event.clientX - drag.offsetRight);
+    marginPopoverPosition.top = Math.max(0, event.clientY - drag.offsetTop - bounds.top);
+    placeMarginPopover();
+  });
+  for (const event of ["pointerup", "pointercancel", "lostpointercapture"]) {
+    els.marginHandle.addEventListener(event, ({ pointerId }) => endMarginPopoverDrag(pointerId));
+  }
+
+  function setMarginPopover(open) {
+    if (!open && marginPopoverDrag) endMarginPopoverDrag(marginPopoverDrag.pointerId);
+    els.marginPopover.hidden = !open;
+    els.marginToggle.setAttribute("aria-expanded", String(open));
+    if (open) {
+      placeMarginPopover();
+      els.translationMargin.focus({ preventScroll: true });
+    }
+  }
+
+  const inMarginControl = (target) => els.marginPopover.contains(target) || els.marginToggle.contains(target);
+  els.marginToggle.addEventListener("click", () => {
+    const open = els.marginPopover.hidden;
+    if (!open) els.marginToggle.focus({ preventScroll: true });
+    setMarginPopover(open);
+  });
+  for (const control of [els.marginToggle, els.marginPopover]) {
+    control.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || els.marginPopover.hidden) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setMarginPopover(false);
+      els.marginToggle.focus({ preventScroll: true });
+    });
+    control.addEventListener("focusout", (event) => {
+      if (event.relatedTarget && !inMarginControl(event.relatedTarget)) setMarginPopover(false);
+    });
+  }
+  document.addEventListener("pointerdown", (event) => {
+    if (!els.marginPopover.hidden && !inMarginControl(event.target)) setMarginPopover(false);
+  }, { passive: true });
+
+  function applyTranslationMargin(value) {
+    const position = textReadingPosition(els.paneRight, els.zhStream);
+    const margin = `${value} px`;
+    els.translationMargin.value = value;
+    els.translationMarginValue.value = margin;
+    els.marginToggle.title = `译文页边距 ${margin}`;
+    els.translationMargin.setAttribute("aria-valuetext", margin);
+    els.zhStream.style.setProperty("--z-translation-margin", `${value}px`);
+    restoreTextPosition(els.paneRight, els.zhStream, position);
+  }
+
+  let marginEdited = false;
+  let layoutSave = Promise.resolve();
+  const defaultMargin = Number(els.translationMargin.defaultValue);
+  applyTranslationMargin(defaultMargin);
+  els.translationMargin.addEventListener("input", () => {
+    marginEdited = true;
+    applyTranslationMargin(Number(els.translationMargin.value));
+  });
+  function saveReaderLayout(update, failureMessage) {
+    layoutSave = layoutSave
+      .then(() => zApi("/api/zotero/reader-layout", { method: "POST", json: update, keepalive: true }))
+      .catch((error) => toast(`${failureMessage}：${error.message}`));
+  }
+
+  function saveTranslationMargin(value) {
+    marginEdited = true;
+    saveReaderLayout({ translation_margin: value }, "页边距保存失败");
+  }
+  els.translationMargin.addEventListener("change", () => saveTranslationMargin(Number(els.translationMargin.value)));
+  els.marginReset.addEventListener("click", () => {
+    applyTranslationMargin(defaultMargin);
+    saveTranslationMargin(defaultMargin);
+  });
+  const readerLayoutReady = zApi("/api/zotero/reader-layout").then((layout) => {
+    if (!marginEdited) applyTranslationMargin(layout.translation_margin);
+    if (focusRailDocks.includes(layout.annotation_dock)) annotationDock = layout.annotation_dock;
+  }).catch(() => {});
+
   els.btnBack.addEventListener("click", showLibraryView);
   els.modePdf.addEventListener("click", () => setViewMode("pdf"));
   els.modeText.addEventListener("click", () => setViewMode("text"));
@@ -1488,6 +1790,7 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
   };
   els.splitter.addEventListener("pointerup", endDrag);
   els.splitter.addEventListener("pointercancel", endDrag);
+  els.splitter.addEventListener("lostpointercapture", endDrag);
 
   // Shortcuts (⌘F search, ⌘+/⌘−/⌘0 PDF zoom, Esc close)
   window.addEventListener("keydown", (ev) => {
@@ -1505,7 +1808,8 @@ export function initZoteroModule({ onSwitchToZoteroTab, onOpenInWorkspace }) {
       ev.preventDefault();
       applyPdfZoom(1);
     } else if (ev.key === "Escape") {
-      if (!els.noteEditor?.hidden) closeNoteEditor();
+      if (focusRailDrag) finishFocusRailDrag(focusRailDrag.pointerId);
+      else if (!els.noteEditor?.hidden) closeNoteEditor();
       else if (!els.searchBar.hidden) closeSearch();
       else if (state.activeSid !== null) focusSentence(null);
     }

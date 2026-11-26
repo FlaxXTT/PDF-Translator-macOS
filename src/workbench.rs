@@ -366,6 +366,10 @@ pub(crate) fn router(state: Arc<Workbench>, web: PathBuf, host: String) -> Route
         .route("/api/files/{id}/{kind}", get(pdf_file))
         .route("/api/archives/{kind}", get(archive_file))
         .route("/api/zotero/library", get(crate::zotero::library_list))
+        .route(
+            "/api/zotero/reader-layout",
+            get(crate::zotero::reader_layout).post(crate::zotero::save_reader_layout),
+        )
         .route("/api/zotero/pending", get(crate::zotero::pending_open))
         .route("/api/zotero/open", post(crate::zotero::open_from_bridge))
         .route(

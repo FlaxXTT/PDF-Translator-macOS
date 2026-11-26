@@ -363,6 +363,11 @@ pub(crate) fn completion_request(
     {
         payload["thinking"] = json!({"type":"disabled"});
     }
+    if base_url == "https://openrouter.ai/api/v1"
+        && (model == "openrouter/free" || model.ends_with(":free"))
+    {
+        payload["provider"] = json!({"max_price": {"prompt": 0, "completion": 0, "request": 0}});
+    }
     let request = client
         .post(format!("{base_url}/chat/completions"))
         .json(&payload);
@@ -702,6 +707,25 @@ mod tests {
                 payload["thinking"]["type"].as_str(),
                 thinking_disabled.then_some("disabled")
             );
+        }
+    }
+
+    #[test]
+    fn caps_openrouter_free_requests_at_zero_without_affecting_other_requests() {
+        let client = reqwest::Client::new();
+        for (base_url, model, free) in [
+            ("https://openrouter.ai/api/v1", "openrouter/free", true),
+            ("https://openrouter.ai/api/v1", "google/gemma-4-31b-it:free", true),
+            ("https://openrouter.ai/api/v1", "google/gemma-4-31b-it", false),
+            ("https://gateway.example/v1", "google/gemma-4-31b-it:free", false),
+        ] {
+            let request = completion_request(&client, base_url, model, "dummy", json!([]))
+                .build()
+                .unwrap();
+            let payload: Value =
+                serde_json::from_slice(request.body().unwrap().as_bytes().unwrap()).unwrap();
+            let cap = free.then(|| json!({"prompt": 0, "completion": 0, "request": 0}));
+            assert_eq!(payload["provider"].get("max_price"), cap.as_ref());
         }
     }
 

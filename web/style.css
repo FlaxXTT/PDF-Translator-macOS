@@ -643,8 +643,22 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
   border-radius: inherit;
   transform: translate(4px, 4px);
 }
-.canvas-wrap { position: absolute; inset: 0; display: grid; place-items: center; }
-.canvas-wrap canvas { background: #fff; box-shadow: var(--paper-shadow); }
+.canvas-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: auto;
+  overflow-anchor: none;
+  scrollbar-gutter: stable;
+}
+.canvas-wrap canvas {
+  flex: none;
+  margin-block: auto;
+  background: #fff;
+  box-shadow: var(--paper-shadow);
+}
 .preview-message {
   position: absolute;
   inset: 50% auto auto 50%;
@@ -1296,6 +1310,7 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
   flex: 1 1 0;
   display: flex;
   min-height: 0;
+  position: relative;
   overflow: hidden;
 }
 
@@ -1305,6 +1320,7 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
   overflow-y: auto;
   overflow-x: auto;
   scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 .z-pane-left {
@@ -1313,13 +1329,81 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
   box-shadow: inset -8px 0 18px -12px rgba(17, 17, 17, 0.18), inset 0 6px 14px -10px rgba(17, 17, 17, 0.12);
 }
 
-.z-pane-right {
+.z-translation-pane {
   flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
   position: relative;
   z-index: 1;
   background: var(--surface);
   box-shadow: -4px 0 18px rgba(17, 17, 17, 0.08);
 }
+
+.z-pane-right {
+  flex: 1 1 0;
+  position: relative;
+  background: var(--surface);
+}
+
+.z-margin-toggle, .z-margin-reset {
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.z-margin-toggle {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 5px;
+  min-height: 24px;
+  padding: 2px 6px;
+  border-color: var(--line);
+  white-space: nowrap;
+}
+
+.z-margin-toggle:hover, .z-margin-toggle[aria-expanded="true"], .z-margin-reset:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.z-margin-toggle .chevron { width: 5px; height: 5px; }
+
+.z-margin-popover {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 23;
+  display: grid;
+  gap: 3px;
+  width: min(188px, 100%);
+  padding: 7px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--menu-shadow);
+}
+
+.z-margin-popover-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.z-margin-popover-heading:active { cursor: grabbing; }
+.z-margin-popover output { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.z-margin-popover input { width: 100%; min-width: 0; min-height: 22px; margin: 0; padding: 0; accent-color: var(--accent); }
+.z-margin-reset { justify-self: end; padding: 1px 4px; }
+
 
 .z-splitter {
   flex: 0 0 10px;
@@ -1362,18 +1446,10 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
   display: none;
 }
 
-.z-split[data-mode="zh"] .z-pane-right {
-  flex: 1 1 100%;
-  background: var(--shell);
-}
+.z-split[data-mode="zh"] .z-translation-pane { flex: 1 1 100%; }
 
-.z-split[data-mode="zh"] .z-tr-stream {
-  background: var(--surface);
-  border-radius: 10px;
-  box-shadow: var(--paper-shadow);
-  margin: 22px auto 80px;
-  padding: 36px 46px;
-}
+.z-split[data-mode="text"] .z-pane-left,
+.z-pane-right { overflow-anchor: none; }
 
 /* PDF Canvas Stream */
 .z-pdf-stream {
@@ -1384,7 +1460,7 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
   min-width: 100%;
   box-sizing: border-box;
   gap: 18px;
-  padding: 50px 18px 80px;
+  padding-block: 48px 64px;
 }
 
 .z-pdf-page {
@@ -1394,9 +1470,12 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
   border-radius: 2px;
   overflow: hidden;
   flex: 0 0 auto;
+  width: var(--z-pdf-page-width, 1px);
 }
 
 .z-pdf-page canvas {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -1433,11 +1512,14 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
   box-shadow: 0 0 0 1.5px var(--accent);
 }
 
-/* High-Readability Text & Translation Streams */
-.z-text-stream, .z-tr-stream {
-  max-width: 70ch;
-  margin: 0 auto;
-  padding: 28px 36px 96px;
+/* Reading columns follow the pane width. */
+.z-text-stream {
+  padding: 16px clamp(12px, 2vw, 24px) 24px;
+}
+
+.z-tr-stream {
+  padding: var(--z-translation-margin, 33px);
+  padding-inline: min(var(--z-translation-margin, 33px), max(0px, calc((100% - 100px) / 2)));
 }
 
 .z-doc-head {
@@ -1856,12 +1938,6 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
   font-size: 12.5px;
   color: var(--muted);
 }
-
-.z-text-stream, .z-tr-stream {
-  max-width: 66ch;
-  padding: 32px 42px 100px;
-}
-
 
 /* ─────────────────────────── Button Micro-Interactions & Triangular Hover Safe-Zones ─────────────────────────── */
 
@@ -2596,14 +2672,14 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
 }
 
 
-/* ─────────────────────────── Right-Edge Floating Icon Rail (Zero Text, Pure Icons + Hover Tooltips) ─────────────────────────── */
+/* Floating annotation tools */
 
 .z-focus-rail {
   position: absolute;
-  right: 16px;
   top: 50%;
-  transform: translateY(-50%);
-  z-index: 30;
+  left: 12px;
+  translate: 0 -50%;
+  z-index: 22;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2614,11 +2690,33 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
   border-radius: 14px;
   box-shadow: 0 10px 28px rgba(17, 17, 17, 0.24), 0 0 0 1px rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(10px);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.z-focus-rail[data-dock="right"] {
+  left: auto;
+  right: 12px;
+}
+
+.z-focus-rail[data-dock="bottom"] {
+  top: auto;
+  bottom: 12px;
+  left: 50%;
+  translate: -50% 0;
+  flex-direction: row;
+  padding: 6px 8px;
+}
+
+.z-focus-rail.is-dragging {
+  cursor: grabbing;
+  will-change: transform;
 }
 
 @keyframes z-rail-in {
-  from { opacity: 0; transform: translateY(-50%) translateX(10px) scale(0.96); }
-  to   { opacity: 1; transform: translateY(-50%) translateX(0) scale(1); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .z-focus-rail:not([hidden]) {
@@ -2626,13 +2724,21 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
 }
 
 .z-rail-meta {
+  min-width: 30px;
+  min-height: 24px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
   font-size: 11px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   color: #d4d4d8;
-  padding: 2px 0;
-  user-select: none;
+  cursor: grab;
 }
+
+.z-rail-meta:hover { background: rgba(255, 255, 255, 0.16); }
+.z-focus-rail.is-dragging .z-rail-meta { cursor: grabbing; }
 
 .z-rail-sep {
   width: 20px;
@@ -2648,6 +2754,9 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
   gap: 7px;
   padding: 2px 0;
 }
+
+.z-focus-rail[data-dock="bottom"] .z-rail-dots { flex-direction: row; padding: 0 2px; }
+.z-focus-rail[data-dock="bottom"] .z-rail-sep { width: 1px; height: 20px; margin: 0 1px; }
 
 .z-rail-btn {
   position: relative;
@@ -2682,7 +2791,6 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
   color: #fca5a5;
 }
 
-/* Crisp left-side hover tooltip for every icon in the floating rail */
 .z-focus-rail [data-tip] {
   position: relative;
 }
@@ -2690,9 +2798,9 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
 .z-focus-rail [data-tip]::after {
   content: attr(data-tip);
   position: absolute;
-  right: calc(100% + 10px);
+  left: calc(100% + 10px);
   top: 50%;
-  transform: translateY(-50%) translateX(4px);
+  transform: translateY(-50%);
   padding: 4px 9px;
   border-radius: 6px;
   background: #141416;
@@ -2703,13 +2811,22 @@ progress:indeterminate::-webkit-progress-bar { background: transparent; }
   pointer-events: none;
   opacity: 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  transition: opacity 130ms ease, transform 130ms ease;
+  transition: opacity 130ms ease;
 }
 
-.z-focus-rail [data-tip]:hover::after {
-  opacity: 1;
-  transform: translateY(-50%) translateX(0);
+.z-focus-rail[data-dock="right"] [data-tip]::after {
+  left: auto;
+  right: calc(100% + 10px);
 }
+
+.z-focus-rail[data-dock="bottom"] [data-tip]::after {
+  left: 50%;
+  top: auto;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%);
+}
+
+.z-focus-rail:not(.is-dragging) [data-tip]:is(:hover, :focus-visible)::after { opacity: 1; }
 
 .status[data-success] {
   color: #047857;

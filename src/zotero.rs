@@ -181,6 +181,7 @@ struct ActiveJob {
 pub(crate) struct ZoteroManager {
     data_dir: PathBuf,
     inner: Mutex<ZoteroState>,
+    reader_layout_write: Mutex<()>,
 }
 
 struct ZoteroState {
@@ -194,6 +195,7 @@ impl ZoteroManager {
     pub(crate) fn new(data_dir: &Path) -> Self {
         Self {
             data_dir: data_dir.to_path_buf(),
+            reader_layout_write: Mutex::new(()),
             inner: Mutex::new(ZoteroState {
                 pending: None,
                 jobs: HashMap::new(),
@@ -779,6 +781,77 @@ LIMIT 500;
 }
 
 /* ─────────────────────────── Route Handlers ─────────────────────────── */
+
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+enum AnnotationDock {
+    Left,
+    Bottom,
+    Right,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(default)]
+pub(crate) struct ReaderLayout {
+    translation_margin: u8,
+    annotation_dock: Option<AnnotationDock>,
+}
+
+const TRANSLATION_MARGIN_RANGE: std::ops::RangeInclusive<u8> = 4..=70;
+const DEFAULT_TRANSLATION_MARGIN: u8 = 33;
+
+impl Default for ReaderLayout {
+    fn default() -> Self {
+        Self { translation_margin: DEFAULT_TRANSLATION_MARGIN, annotation_dock: None }
+    }
+}
+
+#[derive(Deserialize)]
+pub(crate) struct ReaderLayoutUpdate {
+    translation_margin: Option<u8>,
+    annotation_dock: Option<AnnotationDock>,
+}
+
+fn load_reader_layout(dir: &Path) -> ReaderLayout {
+    let mut layout: ReaderLayout = fs::read(dir.join("reader-layout.json"))
+        .ok()
+        .and_then(|data| serde_json::from_slice(&data).ok())
+        .unwrap_or_default();
+    if !TRANSLATION_MARGIN_RANGE.contains(&layout.translation_margin) {
+        layout.translation_margin = DEFAULT_TRANSLATION_MARGIN;
+    }
+    layout
+}
+
+pub(crate) async fn reader_layout(State(app): State<Arc<Workbench>>) -> Json<ReaderLayout> {
+    Json(load_reader_layout(&app.zotero.data_dir))
+}
+
+pub(crate) async fn save_reader_layout(
+    State(app): State<Arc<Workbench>>,
+    Json(update): Json<ReaderLayoutUpdate>,
+) -> Result<StatusCode, ApiError> {
+    if update.translation_margin.is_none() && update.annotation_dock.is_none() {
+        return Err(ApiError::bad("请选择要更新的阅读器布局设置。"));
+    }
+    if update.translation_margin.is_some_and(|margin| !TRANSLATION_MARGIN_RANGE.contains(&margin)) {
+        return Err(ApiError::bad("译文页边距应在 4 到 70 px 之间。"));
+    }
+    let dir = &app.zotero.data_dir;
+    let _write = app.zotero.reader_layout_write.lock().unwrap_or_else(|e| e.into_inner());
+    let mut layout = load_reader_layout(dir);
+    if let Some(margin) = update.translation_margin {
+        layout.translation_margin = margin;
+    }
+    if let Some(dock) = update.annotation_dock {
+        layout.annotation_dock = Some(dock);
+    }
+    let mut pending = tempfile::NamedTempFile::new_in(dir).map_err(|_| ApiError::disk())?;
+    serde_json::to_writer(&mut pending, &layout).map_err(|_| ApiError::disk())?;
+    pending.as_file().sync_all().map_err(|_| ApiError::disk())?;
+    pending.persist(dir.join("reader-layout.json")).map_err(|_| ApiError::disk())?;
+    Ok(StatusCode::NO_CONTENT)
+}
 
 pub(crate) async fn library_list(
     State(app): State<Arc<Workbench>>,

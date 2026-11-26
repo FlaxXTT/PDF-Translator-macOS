@@ -47,25 +47,94 @@ const languageOptions = [
 ];
 const standardService = "SiliconFlowFree";
 const standardLabel = "SiliconFlow Free";
-const servicePresets = new Map([
-  ["glm47", { name: "智谱 · GLM-4.7", legacyName: "智谱 · GLM-4.7（免费 API）", url: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4.7" }],
+const zhipuUrl = "https://open.bigmodel.cn/api/paas/v4";
+const zaUrl = "https://api.z.ai/api/paas/v4";
+const googleUrl = "https://generativelanguage.googleapis.com/v1beta/openai";
+const googleGeminiName = "Google · Gemini 4 Hydrogen";
+const zhipuName = "智谱 · GLM-4.7";
+const zhipuLegacyName = "智谱 · GLM-4.7（免费 API）";
+const paidPresets = [
+  ["glm-flashx-global", { name: "Z.ai · GLM-4.7-FlashX", credentialName: "Z.ai", url: zaUrl, model: "glm-4.7-flashx" }],
+  ["glm47", { name: zhipuName, legacyName: zhipuLegacyName, keyAliases: ["智谱开放平台"], url: zhipuUrl, model: "glm-4.7" }],
   ["openai", { name: "OpenAI · GPT-6 Luna", url: "https://api.openai.com/v1", model: "gpt-6-luna" }],
   ["deepseek", { name: "DeepSeek · Flash", url: "https://api.deepseek.com", model: "deepseek-flash" }],
-  ["gemini", {
-    name: "Google · Gemini 4 Hydrogen",
-    url: "https://generativelanguage.googleapis.com/v1beta/openai",
-    model: "gemini-4-hydrogen",
-  }],
   ["kimi", {
     name: "Kimi · K3.1 Pro (Global)",
     legacyName: "Kimi · K3.1 Pro（国际）",
     url: "https://api.moonshot.ai/v1",
     model: "kimi-k3.1-pro",
   }],
+];
+const freePresetGroups = [
+  {
+    label: "免费 API · 智谱",
+    endpoint: { url: zhipuUrl, credentialName: "智谱开放平台", keyAliases: [zhipuName, zhipuLegacyName] },
+    models: [
+      ["glm47-flash", "智谱 · GLM-4.7-Flash", "glm-4.7-flash"],
+      ["glm4-flash", "智谱 · GLM-4-Flash-250414", "glm-4-flash-250414"],
+      ["glm46v-flash", "智谱 · GLM-4.6V-Flash", "glm-4.6v-flash"],
+    ],
+  },
+  {
+    label: "免费 API · 硅基流动",
+    endpoint: { url: "https://api.siliconflow.cn/v1", credentialName: "硅基流动" },
+    models: [
+      ["siliconflow-hunyuan", "硅基流动 · Hunyuan-MT-7B", "tencent/Hunyuan-MT-7B"],
+      ["siliconflow-qwen", "硅基流动 · Qwen3.5-4B", "Qwen/Qwen3.5-4B"],
+      ["siliconflow-glm", "硅基流动 · GLM-4-9B-0414", "THUDM/GLM-4-9B-0414"],
+    ],
+  },
+  {
+    label: "免费 API · OpenRouter",
+    endpoint: { url: "https://openrouter.ai/api/v1", credentialName: "OpenRouter" },
+    models: [
+      ["openrouter-free", "OpenRouter · 免费自动选模型", "openrouter/free"],
+      ["openrouter-ling", "OpenRouter · Ling 3.2 Flash", "inclusionai/ling-3.2-flash:free"],
+      ["openrouter-ernie", "OpenRouter · ERNIE 5.5 Flash Preview", "baidu/ernie-5.5-flash-preview:free"],
+      ["openrouter-gemma-26b", "OpenRouter · Gemma 4 26B A4B", "google/gemma-4-26b-a4b-it:free"],
+      ["openrouter-gemma-31b", "OpenRouter · Gemma 4 31B", "google/gemma-4-31b-it:free"],
+      ["openrouter-nemotron-lightning", "OpenRouter · Nemotron 3.5 Lightning", "nvidia/nemotron-3.5-lightning:free"],
+      ["openrouter-nemotron-super", "OpenRouter · Nemotron 3.5 Super VL", "nvidia/nemotron-3.5-super-vl:free"],
+      ["openrouter-nemotron-ultra", "OpenRouter · Nemotron 3 Ultra", "nvidia/nemotron-3-ultra-550b-a55b:free"],
+      ["openrouter-nemotron-nano", "OpenRouter · Nemotron 3 Nano Omni", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"],
+      ["openrouter-lfm", "OpenRouter · LFM3-1.7B", "liquid/lfm-3-1.7b:free"],
+    ],
+  },
+  {
+    label: "免费 API · Z.ai 国际站",
+    endpoint: { url: zaUrl, credentialName: "Z.ai" },
+    models: [["glm47-flash-global", "Z.ai · GLM-4.7-Flash", "glm-4.7-flash"]],
+  },
+  {
+    label: "免费 API · Google Gemma",
+    endpoint: { url: googleUrl, credentialName: "Google AI Studio", keyAliases: [googleGeminiName] },
+    models: [
+      ["google-gemma-26b", "Google · Gemma 4 26B A4B", "gemma-4-26b-a4b-it"],
+      ["google-gemma-31b", "Google · Gemma 4 31B", "gemma-4-31b-it"],
+    ],
+  },
+];
+const accountTierPresets = [
+  ["gemini", { name: googleGeminiName, keyAliases: ["Google AI Studio"], url: googleUrl, model: "gemini-4-hydrogen" }],
+];
+const servicePresets = new Map();
+const presetGroups = freePresetGroups.map(({ label, endpoint, models }) => [
+  label, models.map(([id, name, model]) => [id, { ...endpoint, name, model }]),
 ]);
-byId("settings-model-presets").replaceChildren(
-  ...Array.from(servicePresets, ([id, preset]) => new Option(preset.name, id)),
-);
+for (const [label, presets] of [...presetGroups, ["免费层 · Google Gemini（限免费项目）", accountTierPresets], ["按量计费预设", paidPresets]]) {
+  const group = document.createElement("optgroup");
+  group.label = label;
+  for (const [id, preset] of presets) {
+    servicePresets.set(id, preset);
+    group.append(new Option(preset.name, id));
+  }
+  settingsProvider.add(group, settingsProvider.querySelector('option[value="custom"]'));
+}
+
+function presetCredentialNames(preset) {
+  return [preset.legacyName, preset.credentialName, preset.name, ...(preset.keyAliases ?? [])].filter(Boolean);
+}
+
 const inlineSelects = new Map(
   Array.from(document.querySelectorAll("#yepage-main select, #yepage-settings select"), (select) => [
     select, createInlineSelect(select, closeInlineSelects),
@@ -382,7 +451,7 @@ function activeProvider() {
   const name = snapshot.active_service || service.name || standardService;
   if (name === standardService) return standardService;
   for (const [id, preset] of servicePresets) {
-    if ((preset.name === name || preset.legacyName === name) && preset.url === service.base_url && preset.model === service.model) return id;
+    if (preset.url === service.base_url && preset.model === service.model && presetCredentialNames(preset).includes(name)) return id;
   }
   return "custom";
 }
@@ -776,10 +845,12 @@ function profileFormValues() {
   const preset = servicePresets.get(selectedProvider);
   const key = profileKey.value.trim();
   if (preset) {
-    const { name, legacyName, url, model } = preset;
-    const useLegacy = legacyName && (snapshot.saved_keys?.[legacyName]?.includes(url)
-      || (snapshot.service?.name === legacyName && snapshot.service.base_url === url));
-    return { name: useLegacy ? legacyName : name, url, model, key };
+    const { name, credentialName, legacyName, url, model } = preset;
+    const preferredName = credentialName ?? name;
+    const candidates = key ? [legacyName, preferredName].filter(Boolean) : presetCredentialNames(preset);
+    const savedName = candidates.find((candidate) => snapshot.saved_keys?.[candidate]?.includes(url)
+      || (snapshot.service?.has_key && snapshot.service.name === candidate && snapshot.service.base_url === url));
+    return { name: savedName ?? preferredName, url, model, key };
   }
   return {
     name: profileName.value.trim(),
